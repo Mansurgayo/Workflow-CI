@@ -33,6 +33,9 @@ jobs:
         run: |
           pip install --upgrade pip
           pip install -r MLProject/requirements.txt
+          # install rclone untuk upload ke Google Drive
+          sudo apt-get update
+          sudo apt-get install -y rclone
 
       # 6. Run MLflow project
       - name: Run mlflow project
@@ -47,18 +50,19 @@ jobs:
           echo "run_id=$RUN_ID" >> $GITHUB_OUTPUT
           echo "Latest Run ID: $RUN_ID"
 
-      # 8. Install Python dependencies
+      # 8. Install Python dependencies (lagi, untuk MLProject)
       - name: Install Python dependencies
         run: |
           pip install --upgrade pip
           pip install -r MLProject/requirements.txt
 
-      # 9. Upload to Google Drive / GitHub Artifact
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v3
-        with:
-          name: mlflow-artifacts
-          path: MLProject/mlruns/0/${{ steps.getrun.outputs.run_id }}/artifacts
+      # 9. Upload to Google Drive via rclone
+      - name: Upload MLflow artifacts to Google Drive
+        run: |
+          mkdir -p ~/.config/rclone/
+          echo "${{ secrets.RCLONE_CONFIG_MYDRIVE_BASE64 }}" | base64 --decode > ~/.config/rclone/rclone.conf
+          ARTIFACT_PATH="MLProject/mlruns/0/${{ steps.getrun.outputs.run_id }}/artifacts"
+          rclone copy "$ARTIFACT_PATH" mydrive:MLflowArtifacts/${{ steps.getrun.outputs.run_id }} --progress
 
       # 10. Build Docker Model
       - name: Build Docker Model
