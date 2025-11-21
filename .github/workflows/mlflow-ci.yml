@@ -50,7 +50,7 @@ jobs:
     - name: Build Docker Model
       run: |
         cd MLProject
-        mlflow models build-docker -m "runs:/${{ steps.get-run.outputs.run_id }}/model" -n "diabetes-model"
+        mlflow models build-docker -m "file://$(pwd)/mlruns/0/${{ steps.get-run.outputs.run_id }}/artifacts/model" -n "diabetes-model"
         
     - name: Log in to Docker Hub
       uses: docker/login-action@v2
