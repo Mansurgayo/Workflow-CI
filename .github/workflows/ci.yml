@@ -10,30 +10,32 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # 1. Checkout repository
+      # 1. Checkout repo
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      # 2. Set up Python 3.12.7
+      # 2. Setup Python
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: "3.12.7"
+          python-version: "3.12"
 
-      # 3. Check Env
-      - name: Check Environment
-        run: env
+      # 3. Install dependencies via conda
+      - name: Set up Conda environment
+        uses: conda-incubator/setup-miniconda@v2
+        with:
+          environment-file: MLProject/conda.yaml
+          auto-activate-base: false
+          activate-environment: mlflow-env
 
-      # 4. Install dependencies
-      - name: Install dependencies
-        run: |
-          pip install --upgrade pip
-          pip install mlflow docker scikit-learn pandas numpy requests
+      # 4. Check Env
+      - name: Check environment
+        run: conda list
 
-      # 5. Run MLflow project (training model)
-      - name: Run MLflow Project
+      # 5. Run MLflow Project
+      - name: Run MLflow project
         working-directory: MLProject
-        run: mlflow run . --env-manager=local
+        run: mlflow run . --env-manager=conda
 
       # 6. Get latest MLflow run_id
       - name: Get latest MLflow run_id
@@ -43,29 +45,22 @@ jobs:
           echo "run_id=$RUN_ID" >> $GITHUB_OUTPUT
           echo "Latest Run ID: $RUN_ID"
 
-      # 7. Upload artefak model ke GitHub (branch artifacts)
-      - name: Upload MLflow Artifacts to GitHub
+      # 7. Upload artefak (contoh GitHub LFS atau folder lain)
+      - name: Upload artefak to GitHub
         run: |
-          mkdir -p artifacts
-          cp -r MLProject/mlruns/0/${{ steps.getrun.outputs.run_id }}/artifacts/* artifacts/
-          git config --global user.name "github-actions"
-          git config --global user.email "github-actions@github.com"
-          git checkout -b artifacts || git checkout artifacts
-          cp -r artifacts/* .
-          git add .
-          git commit -m "Add MLflow artifacts for run ${{ steps.getrun.outputs.run_id }}" || echo "Nothing to commit"
-          git push origin artifacts --force
+          mkdir -p artifacts/${{ steps.getrun.outputs.run_id }}
+          cp -r MLProject/mlruns/0/${{ steps.getrun.outputs.run_id }}/artifacts/* artifacts/${{ steps.getrun.outputs.run_id }}/
 
-      # 8. Build Docker Model
-      - name: Build Docker Model
+      # 8. Build Docker Image
+      - name: Build Docker Image
         working-directory: MLProject
         run: |
           mlflow models build-docker \
             -m mlruns/0/${{ steps.getrun.outputs.run_id }}/artifacts/model \
             -n mlflow_model_image
 
-      # 9. Log in to Docker Hub
-      - name: Log in to Docker Hub
+      # 9. Docker login
+      - name: Log in Docker Hub
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
@@ -73,13 +68,11 @@ jobs:
 
       # 10. Tag Docker Image
       - name: Tag Docker Image
-        run: |
-          docker tag mlflow_model_image ${{ secrets.DOCKERHUB_USERNAME }}/mlflow_model_image:latest
+        run: docker tag mlflow_model_image ${{ secrets.DOCKERHUB_USERNAME }}/mlflow_model_image:latest
 
       # 11. Push Docker Image
       - name: Push Docker Image
-        run: |
-          docker push ${{ secrets.DOCKERHUB_USERNAME }}/mlflow_model_image:latest
+        run: docker push ${{ secrets.DOCKERHUB_USERNAME }}/mlflow_model_image:latest
 
       # 12. Complete job
       - name: Complete job
