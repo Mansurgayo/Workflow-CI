@@ -8,11 +8,13 @@ import argparse
 
 
 def load_data(path):
+    """Load dataset dari CSV"""
     df = pd.read_csv(path)
     return df
 
 
 def train_model(df):
+    """Latih model RandomForest dan hitung akurasi"""
     # Kolom target pada dataset kamu adalah "Outcome"
     X = df.drop("Outcome", axis=1)
     y = df["Outcome"]
@@ -31,18 +33,25 @@ def train_model(df):
 
 
 def main(data_path):
-    mlflow.sklearn.autolog()
-
+    # Mulai MLflow run
     with mlflow.start_run():
+        # Load data
         df = load_data(data_path)
-        model, acc = train_model(df)
 
+        # Latih model
+        model, acc = train_model(df)
         print(f"Accuracy: {acc}")
+
+        # Log akurasi sebagai metric
+        mlflow.log_metric("accuracy", acc)
+
+        # Log model ke folder "model" agar workflow Docker bisa build
+        mlflow.sklearn.log_model(model, artifact_path="model")
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--data_path", type=str, required=True)
+    parser.add_argument("--data_path", type=str, required=True, help="Path ke CSV dataset")
     args = parser.parse_args()
 
     main(args.data_path)
