@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # 1. Run actions/checkout@v3
+      # 1. Checkout repository
       - name: Run actions/checkout@v3
         uses: actions/checkout@v3
 
@@ -43,33 +43,32 @@ jobs:
           echo "run_id=$RUN_ID" >> $GITHUB_OUTPUT
           echo "Latest Run ID: $RUN_ID"
 
-      # 7. Install Python dependencies (lagi, sesuai urutan wajib)
+      # 7. Install Python dependencies (lagi)
       - name: Install Python dependencies
         run: |
           pip install --upgrade pip
           pip install mlflow docker scikit-learn pandas numpy requests
 
-      # 8. Upload to Google Drive (ambil artifact dari DagsHub)
+      # 8. Upload to Google Drive (download artifact MLflow dulu)
       - name: Upload to Google Drive
         run: |
-          # buat folder untuk artifact
-          mkdir -p MLProject/mlruns/0/${{ steps.getrun.outputs.run_id }}/artifacts/model
+          # Buat folder untuk artifact
+          mkdir -p MLProject/mlruns/0/${{ steps.getrun.outputs.run_id }}/artifacts
 
-          # Download artifact model dari DagsHub
-          ARTIFACT_URL="https://dagshub.com/Mansurgayo/Membangun_model.mlflow/experiments/0/runs/7d50ddc965a844c7aa3dd63676e1a9f7/artifacts/model.zip?raw=true"
-          wget -O MLProject/mlruns/0/${{ steps.getrun.outputs.run_id }}/model.zip $ARTIFACT_URL
+          # Download artifact model dari MLflow run
+          mlflow artifacts download \
+            --run-id 7d50ddc965a844c7aa3dd63676e1a9f7 \
+            --artifact-path model \
+            -d MLProject/mlruns/0/${{ steps.getrun.outputs.run_id }}/artifacts/model
 
-          # unzip ke folder artifacts/model
-          unzip MLProject/mlruns/0/${{ steps.getrun.outputs.run_id }}/model.zip -d MLProject/mlruns/0/${{ steps.getrun.outputs.run_id }}/artifacts/model
-
-          # Install dan configure rclone
+          # Install rclone
           sudo apt install rclone -y
           mkdir -p ~/.config/rclone/
           echo "${{ secrets.RCLONE_CONFIG_MYDRIVE_BASE64 }}" | base64 --decode > ~/.config/rclone/rclone.conf
 
           # Upload ke Google Drive
           rclone --config ~/.config/rclone/rclone.conf copy \
-            MLProject/mlruns/0/${{ steps.getrun.outputs.run_id }} \
+            MLProject/mlruns/0/${{ steps.getrun.outputs.run_id }}/artifacts/model \
             mydrive:MLflowArtifacts/${{ steps.getrun.outputs.run_id }} --progress
 
       # 9. Build Docker Model
