@@ -1,9 +1,11 @@
-name: mlflow-training-project
-
-env_manager: local
+# MLProject
+name: diabetes_prediction_project
+docker_env:
+  image: python:3.8-slim
 
 entry_points:
   main:
     parameters:
-      data_path: {type: str, default: "namadataset_preprocessing/cleaned_dataset.csv"}
-    command: "python modelling.py --data_path {data_path}"
+      data_path: {type: str, default: "/MLProject/dataset/cleaned_dataset.csv"}
+      experiment_name: {type: str, default: "Diabetes_Prediction_CI"}
+    command: "python modelling.py --data_path={data_path} --experiment_name={experiment_name}"

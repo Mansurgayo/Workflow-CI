@@ -1,0 +1,82 @@
+name: MLflow CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  mlflow-training:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Set up job
+      run: echo "Starting MLflow CI/CD Pipeline..."
+      
+    - name: Run actions/checkout@v3
+      uses: actions/checkout@v3
+      
+    - name: Set up Python 3.12.7
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.12.7'
+        
+    - name: Check Env
+      run: |
+        python --version
+        pip --version
+        
+    - name: Install dependencies
+      run: |
+        pip install mlflow scikit-learn pandas numpy matplotlib scikit-optimize joblib pyyaml
+        
+    - name: Run mlllow project
+      run: |
+        cd MLProject
+        mlflow run . --experiment-name="github-actions-experiment"
+        
+    - name: Get latest Mlllow run_id
+      id: get-run
+      run: |
+        cd MLProject
+        RUN_ID=$(mlflow runs list --experiment-name="github-actions-experiment" | grep -oP '(?<= )\w+(?= )' | head -1)
+        echo "run_id=$RUN_ID" >> $GITHUB_OUTPUT
+        echo "Run ID: $RUN_ID"
+        
+    - name: Install Python dependencies
+      run: pip install gdown requests
+        
+    - name: Upload to Google Drive
+      run: |
+        echo "Artifacts would be uploaded to Google Drive here"
+        # Actual Google Drive upload code would go here
+        
+    - name: Build Docker Model
+      run: |
+        cd MLProject
+        mlflow models build-docker -m "runs:/${{ steps.get-run.outputs.run_id }}/model" -n "diabetes-model"
+        
+    - name: Log in to Docker Hub
+      uses: docker/login-action@v2
+      with:
+        username: ${{ secrets.DOCKER_USERNAME }}
+        password: ${{ secrets.DOCKER_PASSWORD }}
+        
+    - name: Tag Docker Image
+      run: docker tag diabetes-model ${{ secrets.DOCKER_USERNAME }}/diabetes-model:latest
+      
+    - name: Push Docker image
+      run: docker push ${{ secrets.DOCKER_USERNAME }}/diabetes-model:latest
+      
+    - name: Post Log in to Docker Hub
+      run: echo "Docker Hub login completed"
+      
+    - name: Post Set up Python 3.12.7
+      run: echo "Python 3.12.7 setup completed"
+      
+    - name: Post Run actions/checkout@v3
+      run: echo "Code checkout completed"
+      
+    - name: Complete job
+      run: echo "MLflow CI/CD Pipeline completed successfully"

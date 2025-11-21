@@ -1,10 +1,11 @@
 # ==============================
-# modelling_tuning_dagshub.py (VERSI LOG MANUAL STABIL & STRUKTUR LENGKAP)
+# modelling.py (VERSI MLFLOW PROJECT - KRITERIA 3)
 # ==============================
 
 import json
 import os
 import shutil 
+import argparse
 from datetime import datetime
 
 import numpy as np
@@ -28,8 +29,6 @@ from skopt.space import Real
 import mlflow
 import mlflow.sklearn
 import joblib
-import dagshub
-import yaml 
 
 # --- IMPOR STABIL UNTUK LOGGING MANUAL ---
 from mlflow.sklearn import get_default_conda_env, get_default_pip_requirements
@@ -38,27 +37,12 @@ from mlflow.models.signature import infer_signature
 # -----------------------------------------------
 
 # ==========================
-# KONFIG DAGS HUB (Tidak diubah)
-# ==========================
-DAGSHUB_REPO_OWNER = "Mansurgayo"
-DAGSHUB_REPO_NAME = "Membangun_model"
-MLFLOW_TRACKING_URI = f"https://dagshub.com/{DAGSHUB_REPO_OWNER}/{DAGSHUB_REPO_NAME}.mlflow"
-
-try:
-    dagshub.init(repo_owner=DAGSHUB_REPO_OWNER, repo_name=DAGSHUB_REPO_NAME, mlflow=True)
-    mlflow.set_tracking_uri(MLFLOW_TRACKING_URI)
-    print(f"MLflow diarahkan ke: {MLFLOW_TRACKING_URI}")
-except Exception as e:
-    print(f"WARNING: Gagal set MLflow DAGsHub: {e}")
-
-# ==========================
-# DISABLE AUTOLOG (Tidak diubah)
+# DISABLE AUTOLOG
 # ==========================
 mlflow.sklearn.autolog(disable=True)
 
 # ==========================
-# FUNGSI ARTEFAK (Tidak diubah)
-# ...
+# FUNGSI ARTEFAK
 # ==========================
 def save_estimator_html(model, cols, out_path="estimator.html"):
     try:
@@ -113,8 +97,7 @@ def save_confusion_matrix_png(y_true, y_pred, out_path="training_confusion_matri
     return out_path
 
 # ==========================
-# LOAD DATA (Tidak diubah)
-# ...
+# LOAD DATA
 # ==========================
 def load_and_preprocess_data(path):
     if not os.path.exists(path):
@@ -136,18 +119,17 @@ def load_and_preprocess_data(path):
     return X_train, X_test, y_train, y_test
 
 # ==========================
-# TRAINING
+# TRAINING - MODIFIKASI UTAMA
 # ==========================
-def train_and_tune():
-    DATA_PATH = "./namadataset_preprocessing/cleaned_dataset.csv"
-    X_train, X_test, y_train, y_test = load_and_preprocess_data(DATA_PATH)
+def train_and_tune(data_path, experiment_name="Diabetes_Prediction_CI"):
+    X_train, X_test, y_train, y_test = load_and_preprocess_data(data_path)
     
     # Inisialisasi variabel artefak lokal
     est, met, cm = "estimator.html", "metric_info.json", "training_confusion_matrix.png"
     MODEL_ARTIFACT_PATH = "model"
 
     try:
-        mlflow.set_experiment("Diabetes_Prediction_Advanced")
+        mlflow.set_experiment(experiment_name)
         with mlflow.start_run():
             search_space = {
                 "C": Real(1e-6, 1e6, prior="log-uniform"),
@@ -168,13 +150,14 @@ def train_and_tune():
             opt.fit(X_train, y_train)
             best_model = opt.best_estimator_
 
-            # LOG PARAMS & METRICS (Tidak diubah)
+            # LOG PARAMS & METRICS
             mlflow.log_params({
                 "C": float(opt.best_params_["C"]),
                 "penalty": str(opt.best_params_["penalty"]),
                 "tuning_method": "BayesSearchCV",
                 "n_iter": 20
             })
+            
             y_pred = best_model.predict(X_test)
             y_proba = best_model.predict_proba(X_test)[:, 1]
             metrics = {
@@ -186,9 +169,7 @@ def train_and_tune():
             }
             mlflow.log_metrics(metrics)
 
-            # ==========================
-            # ARTEFAK NON-MODEL (di Root Run)
-            # ==========================
+            # ARTEFAK NON-MODEL
             est = save_estimator_html(best_model, X_train.columns.tolist())
             met = save_metrics_json({"metrics": metrics, "best_params": opt.best_params_})
             cm = save_confusion_matrix_png(y_test, y_pred)
@@ -196,9 +177,7 @@ def train_and_tune():
             mlflow.log_artifact(met)
             mlflow.log_artifact(cm)
 
-            # ==========================
-            # LOG MODEL LENGKAP SECARA MANUAL (FINAL STABIL)
-            # ==========================
+            # LOG MODEL LENGKAP SECARA MANUAL
             print("📦 Logging model lengkap secara manual...")
             os.makedirs(MODEL_ARTIFACT_PATH, exist_ok=True)
             
@@ -206,7 +185,7 @@ def train_and_tune():
             model_pkl_path = os.path.join(MODEL_ARTIFACT_PATH, "model.pkl")
             joblib.dump(best_model, model_pkl_path)
             
-            # 2. BUAT METADATA MLMODEL (model/MLmodel)
+            # 2. BUAT METADATA MLMODEL
             signature = infer_signature(X_train, best_model.predict(X_train))
             
             mlflow_model = Model(
@@ -215,7 +194,6 @@ def train_and_tune():
                 signature=signature
             )
             
-            mlflow.sklearn.FLAVOR_NAME
             mlflow_model.add_flavor(
                 mlflow.sklearn.FLAVOR_NAME, 
                 serialization_format='joblib', 
@@ -226,28 +204,27 @@ def train_and_tune():
             mlflow_model_path = os.path.join(MODEL_ARTIFACT_PATH, "MLmodel")
             mlflow_model.save(mlflow_model_path)
             
-            # 3. BUAT FILE LINGKUNGAN (conda.yaml, requirements.txt, python_env.yaml)
-            
-            # a. conda.yaml (Memastikan konversi dict ke YAML)
+            # 3. BUAT FILE LINGKUNGAN
             conda_env_path = os.path.join(MODEL_ARTIFACT_PATH, "conda.yaml")
             with open(conda_env_path, "w") as f:
                 conda_dict = get_default_conda_env(include_cloudpickle=False)
+                import yaml
                 yaml.dump(conda_dict, f, default_flow_style=False)
                  
-            # b. requirements.txt
             req_path = os.path.join(MODEL_ARTIFACT_PATH, "requirements.txt")
             with open(req_path, "w") as f:
                  f.write('\n'.join(get_default_pip_requirements()))
 
-            # c. python_env.yaml (FINAL: Tambahkan sebagai dummy file kosong agar sesuai struktur gambar)
             python_env_path = os.path.join(MODEL_ARTIFACT_PATH, "python_env.yaml")
             with open(python_env_path, "w") as f:
                 f.write('{}') 
             
-            # 4. LOG SEMUA ARTEFAK DI FOLDER 'model'
+            # 4. LOG SEMUA ARTEFAK
             mlflow.log_artifacts(MODEL_ARTIFACT_PATH, artifact_path="model")
             
-            print("\n🎉 Training selesai. Semua artefak & model berhasil diupload ke DAGsHub.")
+            print(f"\n🎉 Training selesai. Run ID: {mlflow.active_run().info.run_id}")
+            
+            return mlflow.active_run().info.run_id
             
     finally:
         # PEMBERSIHAN FILE LOKAL
@@ -258,5 +235,28 @@ def train_and_tune():
         if os.path.exists(MODEL_ARTIFACT_PATH):
             shutil.rmtree(MODEL_ARTIFACT_PATH)
 
+# ==========================
+# MAIN FUNCTION UNTUK MLFLOW PROJECT
+# ==========================
+def main():
+    parser = argparse.ArgumentParser(description='Train Diabetes Prediction Model')
+    parser.add_argument('--data_path', type=str, default='./dataset/cleaned_dataset.csv', 
+                       help='Path to dataset')
+    parser.add_argument('--experiment_name', type=str, default='Diabetes_Prediction_CI',
+                       help='MLflow experiment name')
+    
+    args = parser.parse_args()
+    
+    print(f"🚀 Starting MLflow Project Training")
+    print(f"📁 Data path: {args.data_path}")
+    print(f"🔬 Experiment: {args.experiment_name}")
+    
+    # Validasi path dataset
+    if not os.path.exists(args.data_path):
+        raise FileNotFoundError(f"Dataset not found at: {args.data_path}")
+    
+    run_id = train_and_tune(args.data_path, args.experiment_name)
+    print(f"✅ Training completed successfully! Run ID: {run_id}")
+
 if __name__ == "__main__":
-    train_and_tune()
+    main()
