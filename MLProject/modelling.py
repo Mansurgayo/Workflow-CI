@@ -5,17 +5,21 @@ from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import accuracy_score
 import argparse
+import os
 
-
-def load_data(path):
+def load_data(path: str) -> pd.DataFrame:
     """Load dataset dari CSV"""
+    if not os.path.exists(path):
+        raise FileNotFoundError(f"Dataset tidak ditemukan di path: {path}")
     df = pd.read_csv(path)
     return df
 
-
-def train_model(df):
+def train_model(df: pd.DataFrame) -> tuple:
     """Latih model RandomForest dan hitung akurasi"""
-    # Kolom target pada dataset kamu adalah "Outcome"
+    # Kolom target pada dataset adalah "Outcome"
+    if "Outcome" not in df.columns:
+        raise ValueError("Kolom 'Outcome' tidak ditemukan di dataset")
+
     X = df.drop("Outcome", axis=1)
     y = df["Outcome"]
 
@@ -31,26 +35,24 @@ def train_model(df):
 
     return model, acc
 
+def main(data_path: str):
+    """Main function untuk MLflow run"""
+    mlflow.sklearn.autolog()  # Auto-log parameter & metrics
 
-def main(data_path):
-    # Mulai MLflow run
     with mlflow.start_run():
-        # Load data
         df = load_data(data_path)
-
-        # Latih model
         model, acc = train_model(df)
+
         print(f"Accuracy: {acc}")
 
-        # Log akurasi sebagai metric
+        # Log metric secara manual (optional, karena autolog juga sudah mencatatnya)
         mlflow.log_metric("accuracy", acc)
 
-        # Log model ke folder "model" agar workflow Docker bisa build
+        # Log model ke folder 'model' untuk artifact
         mlflow.sklearn.log_model(model, artifact_path="model")
 
-
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(description="Train RandomForest model and log to MLflow")
     parser.add_argument("--data_path", type=str, required=True, help="Path ke CSV dataset")
     args = parser.parse_args()
 
