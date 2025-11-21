@@ -259,8 +259,8 @@ def main():
     if not os.path.exists(args.data_path):
         raise FileNotFoundError(f"Dataset not found at: {args.data_path}")
     
-    # HAPUS DAGSHUB INTEGRATION UNTUK KRITERIA 3
-    # Gunakan MLflow default tracking (local filesystem)
-    
     run_id = train_and_tune(args.data_path, args.experiment_name)
     print(f"✅ Training completed successfully! Run ID: {run_id}")
+
+if __name__ == "__main__":
+    main()

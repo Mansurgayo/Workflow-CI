@@ -27,17 +27,18 @@ jobs:
       run: |
         pip install mlflow scikit-learn pandas numpy matplotlib scikit-optimize joblib pyyaml
         
-    - name: Run modelling.py directly
+    - name: Run mlllow project
       run: |
         cd MLProject
         python modelling.py --data_path="./dataset/cleaned_dataset.csv" --experiment_name="github-actions-experiment"
         
-    - name: Get latest MLflow run_id
+    - name: Get latest Mlllow run_id
       id: get-run
       run: |
         cd MLProject
-        RUN_ID=$(mlflow runs list --experiment-name="github-actions-experiment" | head -2 | tail -1 | awk '{print $1}')
+        RUN_ID=$(cat run_id.txt)
         echo "run_id=$RUN_ID" >> $GITHUB_OUTPUT
+        echo "Run ID: $RUN_ID"
         
     - name: Install Python dependencies
       run: pip install gdown
