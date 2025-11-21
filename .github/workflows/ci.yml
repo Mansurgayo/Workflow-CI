@@ -11,17 +11,17 @@ jobs:
 
     steps:
       # 1. Checkout repository
-      - name: Run actions/checkout@v3
+      - name: Checkout repository
         uses: actions/checkout@v3
 
       # 2. Set up Python 3.12.7
-      - name: Set up Python 3.12.7
+      - name: Set up Python
         uses: actions/setup-python@v4
         with:
           python-version: "3.12.7"
 
       # 3. Check Env
-      - name: Check Env
+      - name: Check Environment
         run: env
 
       # 4. Install dependencies
@@ -30,48 +30,33 @@ jobs:
           pip install --upgrade pip
           pip install mlflow docker scikit-learn pandas numpy requests
 
-      # 5. Run MLflow project
-      - name: Run mlflow project
+      # 5. Run MLflow project (training model)
+      - name: Run MLflow Project
         working-directory: MLProject
         run: mlflow run . --env-manager=local
 
-      # 6. Get latest MLflow run_id (dynamic, valid hex)
+      # 6. Get latest MLflow run_id
       - name: Get latest MLflow run_id
         id: getrun
         run: |
-          RUN_ID=$(ls -d MLProject/mlruns/0/* | grep -Eo '[0-9a-f]{32}' | head -n 1)
+          RUN_ID=$(ls -t MLProject/mlruns/0 | head -n 1)
           echo "run_id=$RUN_ID" >> $GITHUB_OUTPUT
           echo "Latest Run ID: $RUN_ID"
 
-      # 7. Install Python dependencies (lagi, sesuai submit)
-      - name: Install Python dependencies
+      # 7. Upload artefak model ke GitHub (branch artifacts)
+      - name: Upload MLflow Artifacts to GitHub
         run: |
-          pip install --upgrade pip
-          pip install mlflow docker scikit-learn pandas numpy requests
+          mkdir -p artifacts
+          cp -r MLProject/mlruns/0/${{ steps.getrun.outputs.run_id }}/artifacts/* artifacts/
+          git config --global user.name "github-actions"
+          git config --global user.email "github-actions@github.com"
+          git checkout -b artifacts || git checkout artifacts
+          cp -r artifacts/* .
+          git add .
+          git commit -m "Add MLflow artifacts for run ${{ steps.getrun.outputs.run_id }}" || echo "Nothing to commit"
+          git push origin artifacts --force
 
-      # 8. Upload to Google Drive (download artifact MLflow dulu)
-      - name: Upload to Google Drive
-        run: |
-          # Buat folder untuk artifact
-          mkdir -p MLProject/mlruns/0/${{ steps.getrun.outputs.run_id }}/artifacts
-
-          # Download artifact model dari MLflow run terbaru
-          mlflow artifacts download \
-            --run-id ${{ steps.getrun.outputs.run_id }} \
-            --artifact-path model \
-            -d MLProject/mlruns/0/${{ steps.getrun.outputs.run_id }}/artifacts/model
-
-          # Install rclone
-          sudo apt install rclone -y
-          mkdir -p ~/.config/rclone/
-          echo "${{ secrets.RCLONE_CONFIG_MYDRIVE_BASE64 }}" | base64 --decode > ~/.config/rclone/rclone.conf
-
-          # Upload ke Google Drive
-          rclone --config ~/.config/rclone/rclone.conf copy \
-            MLProject/mlruns/0/${{ steps.getrun.outputs.run_id }}/artifacts/model \
-            mydrive:MLflowArtifacts/${{ steps.getrun.outputs.run_id }} --progress
-
-      # 9. Build Docker Model
+      # 8. Build Docker Model
       - name: Build Docker Model
         working-directory: MLProject
         run: |
@@ -79,23 +64,23 @@ jobs:
             -m mlruns/0/${{ steps.getrun.outputs.run_id }}/artifacts/model \
             -n mlflow_model_image
 
-      # 10. Log in to Docker Hub
+      # 9. Log in to Docker Hub
       - name: Log in to Docker Hub
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      # 11. Tag Docker Image
+      # 10. Tag Docker Image
       - name: Tag Docker Image
         run: |
           docker tag mlflow_model_image ${{ secrets.DOCKERHUB_USERNAME }}/mlflow_model_image:latest
 
-      # 12. Push Docker Image
+      # 11. Push Docker Image
       - name: Push Docker Image
         run: |
           docker push ${{ secrets.DOCKERHUB_USERNAME }}/mlflow_model_image:latest
 
-      # 13. Complete job
+      # 12. Complete job
       - name: Complete job
         run: echo "CI Workflow finished successfully."
