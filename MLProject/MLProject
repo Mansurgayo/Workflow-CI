@@ -1,6 +1,6 @@
-name: workflow_ci_project
-
-conda_env: conda.yaml
+name: Workflow_CI_Experiment
+conda_env: null  # tidak pakai conda
 entry_points:
   train:
+    parameters: {}
     command: "python modelling.py"
