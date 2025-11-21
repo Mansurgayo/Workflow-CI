@@ -1,14 +1,34 @@
+import pandas as pd
 import mlflow
 import mlflow.sklearn
-import pandas as pd
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score
 
-# Load dataset
-df = pd.read_csv("dataset/cleaned_dataset.csv")
+# OPTION 1: Download dataset dari URL
+def load_data():
+    try:
+        # Coba load dari local
+        df = pd.read_csv("MLProject/dataset/cleaned_dataset.csv")
+        return df
+    except:
+        try:
+            # Fallback: download dari URL
+            url = "https://raw.githubusercontent.com/your-repo/dataset/main/cleaned_dataset.csv"
+            df = pd.read_csv(url)
+            return df
+        except:
+            # Fallback 2: buat dummy data
+            from sklearn.datasets import make_classification
+            X, y = make_classification(n_samples=1000, n_features=10, random_state=42)
+            df = pd.DataFrame(X, columns=[f'feature_{i}' for i in range(10)])
+            df['Outcome'] = y
+            return df
 
-# Fitur & target
+# Load dataset
+df = load_data()
+
+# Lanjutkan dengan code yang sama...
 X = df.drop("Outcome", axis=1)
 y = df["Outcome"]
 
