@@ -44,11 +44,13 @@ jobs:
       - name: Install rclone
         run: sudo apt install rclone -y
 
-      # 7. Configure rclone untuk My Drive pakai OAuth token
+      # 7. Configure rclone untuk My Drive pakai OAuth token (multiline-safe)
       - name: Configure rclone
         run: |
           mkdir -p ~/.config/rclone/
-          echo "${{ secrets.RCLONE_CONFIG_MYDRIVE }}" > ~/.config/rclone/rclone.conf
+          cat <<EOF > ~/.config/rclone/rclone.conf
+${{ secrets.RCLONE_CONFIG_MYDRIVE }}
+EOF
 
       # 8. Upload to Google Drive My Drive
       - name: Upload to Google Drive
