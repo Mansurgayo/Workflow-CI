@@ -35,15 +35,15 @@ jobs:
         working-directory: MLProject
         run: mlflow run . --env-manager=local
 
-      # 6. Get latest MLflow run_id
+      # 6. Get latest MLflow run_id (dynamic, valid hex)
       - name: Get latest MLflow run_id
         id: getrun
         run: |
-          RUN_ID=$(ls -t MLProject/mlruns/0 | head -n 1)
+          RUN_ID=$(ls -d MLProject/mlruns/0/* | grep -Eo '[0-9a-f]{32}' | head -n 1)
           echo "run_id=$RUN_ID" >> $GITHUB_OUTPUT
           echo "Latest Run ID: $RUN_ID"
 
-      # 7. Install Python dependencies (lagi)
+      # 7. Install Python dependencies (lagi, sesuai submit)
       - name: Install Python dependencies
         run: |
           pip install --upgrade pip
@@ -55,9 +55,9 @@ jobs:
           # Buat folder untuk artifact
           mkdir -p MLProject/mlruns/0/${{ steps.getrun.outputs.run_id }}/artifacts
 
-          # Download artifact model dari MLflow run
+          # Download artifact model dari MLflow run terbaru
           mlflow artifacts download \
-            --run-id 7d50ddc965a844c7aa3dd63676e1a9f7 \
+            --run-id ${{ steps.getrun.outputs.run_id }} \
             --artifact-path model \
             -d MLProject/mlruns/0/${{ steps.getrun.outputs.run_id }}/artifacts/model
 
