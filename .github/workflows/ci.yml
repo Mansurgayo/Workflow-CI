@@ -18,8 +18,8 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      # 3. Set up Python 3.12.7 via Conda
-      - name: Set up Conda
+      # 3. Set up Python 3.12.7 & Conda environment
+      - name: Set up Python 3.12.7
         uses: conda-incubator/setup-miniconda@v3
         with:
           python-version: 3.12
@@ -28,22 +28,22 @@ jobs:
           auto-update-conda: true
 
       # 4. Check Env
-      - name: Check Environment
+      - name: Check Env
         run: conda list
 
-      # 5. Install dependencies (jika pip diperlukan)
+      # 5. Install dependencies (pip)
       - name: Install dependencies
         run: |
-          conda activate mlflow-env
-          pip install --upgrade pip
-          pip install -r MLProject/requirements.txt
+          conda run -n mlflow-env pip install --upgrade pip
+          conda run -n mlflow-env pip install -r MLProject/requirements.txt
+          # install rclone for Google Drive upload
+          sudo apt-get update
+          sudo apt-get install -y rclone
 
-      # 6. Run mlflow project
-      - name: Run MLflow project
+      # 6. Run miflow project
+      - name: Run mlflow project
         working-directory: MLProject
-        run: |
-          conda activate mlflow-env
-          mlflow run . --env-manager=local
+        run: conda run -n mlflow-env mlflow run . --env-manager=local
 
       # 7. Get latest MLflow run_id
       - name: Get latest MLflow run_id
@@ -53,28 +53,25 @@ jobs:
           echo "run_id=$RUN_ID" >> $GITHUB_OUTPUT
           echo "Latest Run ID: $RUN_ID"
 
-      # 8. Install Python dependencies (lagi, jika ada update)
+      # 8. Install Python dependencies (again, safety)
       - name: Install Python dependencies
         run: |
-          conda activate mlflow-env
-          pip install --upgrade pip
-          pip install -r MLProject/requirements.txt
+          conda run -n mlflow-env pip install --upgrade pip
+          conda run -n mlflow-env pip install -r MLProject/requirements.txt
 
-      # 9. Upload to Google Drive / GitHub Artifact
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: mlflow-artifacts
-          path: MLProject/mlruns/0/${{ steps.getrun.outputs.run_id }}/artifacts
+      # 9. Upload to Google Drive
+      - name: Upload to Google Drive
+        run: |
+          # konfigurasi rclone remote via secret
+          echo "${{ secrets.RCLONE_CONFIG }}" > rclone.conf
+          conda run -n mlflow-env rclone copy MLProject/mlruns/0/${{ steps.getrun.outputs.run_id }}/artifacts remote:mlflow-artifacts --config rclone.conf
 
       # 10. Build Docker Model
       - name: Build Docker Model
         working-directory: MLProject
-        run: |
-          conda activate mlflow-env
-          mlflow models build-docker \
-            -m mlruns/0/${{ steps.getrun.outputs.run_id }}/artifacts/model \
-            -n mlflow_model_image
+        run: conda run -n mlflow-env mlflow models build-docker \
+          -m mlruns/0/${{ steps.getrun.outputs.run_id }}/artifacts/model \
+          -n mlflow_model_image
 
       # 11. Log in to Docker Hub
       - name: Log in to Docker Hub
@@ -85,24 +82,22 @@ jobs:
 
       # 12. Tag Docker Image
       - name: Tag Docker Image
-        run: |
-          docker tag mlflow_model_image ${{ secrets.DOCKERHUB_USERNAME }}/mlflow_model_image:latest
+        run: docker tag mlflow_model_image ${{ secrets.DOCKERHUB_USERNAME }}/mlflow_model_image:latest
 
       # 13. Push Docker Image
       - name: Push Docker Image
-        run: |
-          docker push ${{ secrets.DOCKERHUB_USERNAME }}/mlflow_model_image:latest
+        run: docker push ${{ secrets.DOCKERHUB_USERNAME }}/mlflow_model_image:latest
 
       # 14. Post Log in to Docker Hub
       - name: Post Log in to Docker Hub
         run: echo "Post Docker login complete."
 
       # 15. Post Set up Python 3.12.7
-      - name: Post Set up Python
+      - name: Post Set up Python 3.12.7
         run: echo "Post Python setup complete."
 
       # 16. Post Run actions/checkout@v3
-      - name: Post Checkout
+      - name: Post Run actions/checkout@v3
         run: echo "Post checkout complete."
 
       # 17. Complete job
