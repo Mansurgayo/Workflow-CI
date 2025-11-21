@@ -31,10 +31,12 @@ jobs:
       - name: Check Environment
         run: conda list
 
-      # 5. Run MLflow project
+      # 5. Run MLflow project (aktifkan environment)
       - name: Run mlflow project
         working-directory: MLProject
-        run: mlflow run . --env-manager=local
+        run: |
+          conda activate mlflow-env
+          mlflow run . --env-manager=local
 
       # 6. Get latest MLflow run_id
       - name: Get latest MLflow run_id
@@ -55,6 +57,7 @@ jobs:
       - name: Build Docker Model
         working-directory: MLProject
         run: |
+          conda activate mlflow-env
           mlflow models build-docker \
             -m mlruns/0/${{ steps.getrun.outputs.run_id }}/artifacts/model \
             -n mlflow_model_image
