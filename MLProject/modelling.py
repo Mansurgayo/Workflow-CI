@@ -13,8 +13,9 @@ def load_data(path):
 
 
 def train_model(df):
-    X = df.drop("label", axis=1)
-    y = df["label"]
+    # Kolom target pada dataset kamu adalah "Outcome"
+    X = df.drop("Outcome", axis=1)
+    y = df["Outcome"]
 
     X_train, X_test, y_train, y_test = train_test_split(
         X, y, test_size=0.2, random_state=42
