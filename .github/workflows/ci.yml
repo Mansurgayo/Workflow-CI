@@ -56,10 +56,10 @@ jobs:
       - name: Install rclone
         run: sudo apt install rclone -y
 
-      - name: Configure rclone
+      - name: Configure rclone with Service Account
         run: |
           mkdir -p ~/.config/rclone/
-          echo "${{ secrets.GDRIVE_SERVICE_ACCOUNT }}" > ~/.config/rclone/gdrive-service-account.json
+          echo '${{ secrets.GDRIVE_SERVICE_ACCOUNT }}' > ~/.config/rclone/gdrive-service-account.json
           rclone config create mydrive drive service_account_file ~/.config/rclone/gdrive-service-account.json
 
       - name: Upload to Google Drive
