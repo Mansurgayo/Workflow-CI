@@ -30,9 +30,9 @@ jobs:
         echo "Directory: $(pwd)"
         ls -la
         echo "Cek file conda.yaml:"
-        find . -name "conda.yaml" -o -name "environment.yml"
+        find . -name "conda.yaml"
         echo "Isi conda.yaml:"
-        cat conda.yaml
+        cat MLProject/conda.yaml
     
     # 5. Install dependencies
     - name: Install dependencies
@@ -42,17 +42,15 @@ jobs:
     # 6. Run mlflow project
     - name: Run mlflow project
       run: |
-        # Buat MLproject yang pakai conda.yaml
+        # Buat MLproject yang pakai conda.yaml dari folder MLProject
         echo "name: diabetes_mlflow" > MLproject
-        echo "conda_env: conda.yaml" >> MLproject
+        echo "conda_env: MLProject/conda.yaml" >> MLproject
         echo "entry_points:" >> MLproject
         echo "  main:" >> MLproject
-        echo "    command: \"python modelling.py\"" >> MLproject
+        echo "    command: \"python MLProject/modelling.py\"" >> MLproject
         
         echo "MLproject content:"
         cat MLproject
-        echo "Conda file exists:"
-        ls -la conda.yaml
         
         mlflow run . --env-manager=local
     
