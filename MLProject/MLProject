@@ -1,9 +1,7 @@
-name: diabetes_prediction_project
+name: diabetes_prediction
+
 conda_env: conda.yaml
 
 entry_points:
   main:
-    parameters:
-      data_path: {type: str, default: "./dataset/cleaned_dataset.csv"}
-      experiment_name: {type: str, default: "Diabetes_Prediction_CI"}
-    command: "python modelling.py --data_path={data_path} --experiment_name={experiment_name}"
+    command: "python modelling.py --data_path=./dataset/cleaned_dataset.csv"
