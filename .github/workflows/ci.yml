@@ -13,10 +13,10 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      - name: Set up Python 3.12
+      - name: Set up Python 3.10
         uses: actions/setup-python@v4
         with:
-          python-version: "3.12.7"
+          python-version: "3.10"
 
       - name: Check Env
         run: |
@@ -24,26 +24,35 @@ jobs:
           echo "Directory:"
           ls -R
 
+      # ----------------------------------------------------
+      # Install MLflow + dependencies (VERSION FIXED)
+      # ----------------------------------------------------
       - name: Install dependencies
         run: |
-          pip install mlflow scikit-learn pandas numpy
+          pip install --upgrade pip
+          pip install mlflow-skinny docker scikit-learn pandas numpy
 
+      # ----------------------------------------------------
+      # Run MLflow Project
+      # ----------------------------------------------------
       - name: Run mlflow project
         working-directory: MLProject
         run: mlflow run .
 
+      # ----------------------------------------------------
+      # Get latest MLflow run_id
+      # ----------------------------------------------------
       - name: Get latest MLflow run_id
         id: getrun
         run: |
-          RUN_ID=$(ls -t mlruns/0 | head -n 1)
+          RUN_ID=$(ls -t MLProject/mlruns/0 | head -n 1)
           echo "run_id=$RUN_ID" >> $GITHUB_OUTPUT
 
       # ----------------------------------------------------
       # UPLOAD ARTIFACT TO GOOGLE DRIVE (Rclone Method)
       # ----------------------------------------------------
       - name: Install rclone
-        run: |
-          sudo apt install rclone -y
+        run: sudo apt install rclone -y
 
       - name: Configure rclone
         run: |
@@ -52,12 +61,16 @@ jobs:
       - name: Upload to Google Drive
         run: |
           rclone --config=rclone.conf copy MLProject/mlruns/0/${{ steps.getrun.outputs.run_id }} gdrive:mlflow_artifacts/${{ steps.getrun.outputs.run_id }}
-      # ----------------------------------------------------
 
+      # ----------------------------------------------------
+      # Build Docker Image
+      # ----------------------------------------------------
       - name: Build Docker Model
         working-directory: MLProject
         run: |
-          mlflow models build-docker -m mlruns/0/${{ steps.getrun.outputs.run_id }}/artifacts/model -n mlflow_model_image
+          mlflow models build-docker \
+            -m mlruns/0/${{ steps.getrun.outputs.run_id }}/artifacts/model \
+            -n mlflow_model_image
 
       # ----------------------------------------------------
       # Docker Hub Login + Push
@@ -70,14 +83,15 @@ jobs:
 
       - name: Tag Docker Image
         run: |
-          docker tag mlflow_model_image ${{ secrets.DOCKERHUB_USERNAME }}/mlflow_model_image:latest
+          docker tag mlflow_model_image:latest \
+          ${{ secrets.DOCKERHUB_USERNAME }}/mlflow_model_image:latest
 
       - name: Push Docker Image
         run: |
           docker push ${{ secrets.DOCKERHUB_USERNAME }}/mlflow_model_image:latest
 
       # ----------------------------------------------------
-      # Closing steps
+      # End Job
       # ----------------------------------------------------
       - name: Post Log in to Docker Hub
         run: echo "Docker push completed."
