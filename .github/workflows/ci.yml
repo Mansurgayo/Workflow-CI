@@ -1,127 +1,35 @@
-name: MLflow Basic CI
+name: MLflow CI Basic
 
 on:
   push:
     branches: [ main ]
 
 jobs:
-  mlflow-basic:
+  train_model:
     runs-on: ubuntu-latest
-    
+
     steps:
-    # 1. Set up job
-    - name: Set up job
-      run: echo "🎯 Starting MLflow Basic CI Job..."
-    
-    # 2. Run actions/checkout@v3
-    - name: Checkout code
-      uses: actions/checkout@v3
-    
-    # 3. Set up Python 3.12.7
-    - name: Set up Python 3.12.7
-      uses: actions/setup-python@v4
-      with:
-        python-version: '3.12.7'
-    
-    # 4. Check Env
-    - name: Check Environment
-      run: |
-        echo "🔍 Checking Environment..."
-        python --version
-        pip --version
-        echo "📁 Current directory: $(pwd)"
-        echo "📋 Repository contents:"
-        ls -la
-        echo "🔎 Looking for dataset:"
-        find . -name "*.csv" | head -5
-    
-    # 5. Install dependencies
-    - name: Install dependencies
-      run: |
-        echo "📦 Installing dependencies..."
-        pip install --upgrade pip
-        pip install mlflow scikit-learn pandas numpy matplotlib joblib scikit-optimize
-        
-        # Install dari requirements.txt jika ada
-        if [ -f "requirements.txt" ]; then
-          echo "📄 Installing from requirements.txt"
-          pip install -r requirements.txt
-        fi
-    
-    # 6. Run mlflow project
-    - name: Run mlflow project
-      run: |
-        echo "🚀 Running MLflow Project..."
-        
-        # Buat MLproject file sederhana jika tidak ada
-        if [ ! -f "MLproject" ]; then
-          cat > MLproject << EOF
-name: diabetes_mlflow
-python_env: python_env.yaml
-entry_points:
-  main:
-    command: "python modelling.py"
-EOF
-          
-          cat > python_env.yaml << EOF
-python: "3.12.7"
-dependencies:
-  - pip
-  - pip:
-    - mlflow
-    - scikit-learn
-    - pandas
-    - numpy
-    - matplotlib
-    - scikit-optimize
-    - joblib
-EOF
-        fi
-        
-        # Jalankan MLflow
-        mlflow run . --experiment-name="basic-ci-experiment"
-    
-    # 7. Get latest MLflow run_id
-    - name: Get latest MLflow run_id
-      run: |
-        echo "📊 Getting latest MLflow run_id..."
-        
-        if [ -d "./mlruns" ]; then
-          echo "📁 MLflow runs directory:"
-          ls -la ./mlruns/
-          
-          # Cari run_id terbaru
-          if [ -d "./mlruns/0" ]; then
-            LATEST_RUN=$(ls ./mlruns/0/ | grep -v meta.yaml | sort -r | head -1)
-            if [ ! -z "$LATEST_RUN" ]; then
-              echo "✅ Latest MLflow run_id: $LATEST_RUN"
-              echo "RUN_ID=$LATEST_RUN" >> $GITHUB_ENV
-              
-              # Tampilkan info run
-              if [ -f "./mlruns/0/$LATEST_RUN/meta.yaml" ]; then
-                echo "📄 Run metadata:"
-                cat "./mlruns/0/$LATEST_RUN/meta.yaml"
-              fi
-            else
-              echo "❌ No runs found in mlruns/0/"
-            fi
-          else
-            echo "❌ No experiment found in mlruns/0/"
-          fi
-        else
-          echo "❌ mlruns directory not found"
-        fi
-    
-    # Completion
-    - name: Job completion
-      run: |
-        echo "🎉 MLflow Basic CI Completed!"
-        echo "📝 Run ID: ${{ env.RUN_ID }}"
-        echo "✅ All criteria satisfied:"
-        echo "   ✅ Set up job"
-        echo "   ✅ Run actions/checkout@v3" 
-        echo "   ✅ Set up Python 3.12.7"
-        echo "   ✅ Check Env"
-        echo "   ✅ Install dependencies"
-        echo "   ✅ Run mlflow project"
-        echo "   ✅ Get latest MLflow run_id"
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.12.7'
+
+      - name: Check Python environment
+        run: |
+          python --version
+          pip list
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install mlflow scikit-learn pandas numpy matplotlib
+
+      - name: Run MLflow Project
+        run: mlflow run MLProject -e train
+
+      - name: Get latest MLflow run_id
+        run: |
+          mlflow runs list --experiment-name Workflow_CI_Experiment --order-by attribute.start_time DESC --max-results 1
