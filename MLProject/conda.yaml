@@ -1,15 +1,12 @@
-name: diabetes-mlflow
+name: workflow-ci-env
 channels:
-  - conda-forge
   - defaults
 dependencies:
-  - python=3.12.7
+  - python=3.12
   - pip
   - pip:
-    - mlflow
-    - scikit-learn
-    - pandas
-    - numpy
-    - matplotlib
-    - scikit-optimize
-    - joblib
+      - mlflow
+      - scikit-learn
+      - pandas
+      - numpy
+      - matplotlib

@@ -1,7 +1,6 @@
-name: diabetes_prediction
+name: workflow_ci_project
 
 conda_env: conda.yaml
-
 entry_points:
-  main:
-    command: "python modelling.py --data_path=./dataset/cleaned_dataset.csv"
+  train:
+    command: "python modelling.py"
