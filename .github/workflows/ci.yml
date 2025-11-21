@@ -51,22 +51,22 @@ jobs:
           echo "Latest Run ID: $RUN_ID"
 
       # -------------------------------
-      # 6. Upload Artifact to Google Drive (Shared Drive)
+      # 6. Upload Artifact to Google Drive (My Drive)
       # -------------------------------
       - name: Install rclone
         run: sudo apt install rclone -y
 
-      - name: Configure rclone for Shared Drive
+      - name: Configure rclone for My Drive
         run: |
           mkdir -p ~/.config/rclone/
           # Tuliskan service account JSON ke file
           echo '${{ secrets.GDRIVE_SERVICE_ACCOUNT }}' > ~/.config/rclone/gdrive-service-account.json
-          # Buat remote mydrive untuk Shared Drive
-          rclone config create mydrive drive service_account_file ~/.config/rclone/gdrive-service-account.json team_drive "MLflowSharedDrive"
+          # Buat remote mydrive untuk My Drive biasa
+          rclone config create mydrive drive service_account_file ~/.config/rclone/gdrive-service-account.json
 
       - name: Upload to Google Drive
         run: |
-          rclone copy MLProject/mlruns/0/${{ steps.getrun.outputs.run_id }} mydrive:mlflow_artifacts/${{ steps.getrun.outputs.run_id }} --progress
+          rclone copy MLProject/mlruns/0/${{ steps.getrun.outputs.run_id }} mydrive:MLflowArtifacts/${{ steps.getrun.outputs.run_id }} --progress
 
       # -------------------------------
       # 7. Build Docker Image
