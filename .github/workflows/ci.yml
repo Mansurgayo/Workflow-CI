@@ -18,27 +18,26 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      # 3. Set up Python 3.12.7
-      - name: Set up Python
-        uses: actions/setup-python@v4
+      # 3. Set up Python (via Conda)
+      - name: Set up Conda
+        uses: conda-incubator/setup-miniconda@v3
         with:
-          python-version: "3.12.7"
+          python-version: 3.12
+          auto-update-conda: true
+          environment-file: MLProject/conda.yaml
+          activate-environment: mlflow-env
+          update-env: true
 
       # 4. Check Env
       - name: Check Environment
-        run: env
+        run: conda info && conda list
 
-      # 5. Install dependencies
-      - name: Install dependencies
-        run: |
-          pip install --upgrade pip
-          pip install -r MLProject/requirements.txt
-          # install rclone untuk upload ke Google Drive
-          sudo apt-get update
-          sudo apt-get install -y rclone
+      # 5. Install dependencies (pip already handled in conda.yaml)
+      - name: Dependencies installed via conda.yaml
+        run: echo "Dependencies installed in Conda environment"
 
       # 6. Run MLflow project
-      - name: Run mlflow project
+      - name: Run MLflow project
         working-directory: MLProject
         run: mlflow run . --env-manager=local
 
@@ -50,19 +49,16 @@ jobs:
           echo "run_id=$RUN_ID" >> $GITHUB_OUTPUT
           echo "Latest Run ID: $RUN_ID"
 
-      # 8. Install Python dependencies (lagi, untuk MLProject)
-      - name: Install Python dependencies
-        run: |
-          pip install --upgrade pip
-          pip install -r MLProject/requirements.txt
+      # 8. Install Python dependencies (optional, already in conda)
+      - name: Confirm environment packages
+        run: conda list
 
-      # 9. Upload to Google Drive via rclone
-      - name: Upload MLflow artifacts to Google Drive
-        run: |
-          mkdir -p ~/.config/rclone/
-          echo "${{ secrets.RCLONE_CONFIG_MYDRIVE_BASE64 }}" | base64 --decode > ~/.config/rclone/rclone.conf
-          ARTIFACT_PATH="MLProject/mlruns/0/${{ steps.getrun.outputs.run_id }}/artifacts"
-          rclone copy "$ARTIFACT_PATH" mydrive:MLflowArtifacts/${{ steps.getrun.outputs.run_id }} --progress
+      # 9. Upload artifacts to GitHub
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: mlflow-artifacts
+          path: MLProject/mlruns/0/${{ steps.getrun.outputs.run_id }}/artifacts
 
       # 10. Build Docker Model
       - name: Build Docker Model
