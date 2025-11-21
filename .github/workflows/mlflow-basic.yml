@@ -29,7 +29,9 @@ jobs:
         python --version
         echo "Directory: $(pwd)"
         ls -la
-        echo "Conda file:"
+        echo "Cek file conda.yaml:"
+        find . -name "conda.yaml" -o -name "environment.yml"
+        echo "Isi conda.yaml:"
         cat conda.yaml
     
     # 5. Install dependencies
@@ -46,6 +48,11 @@ jobs:
         echo "entry_points:" >> MLproject
         echo "  main:" >> MLproject
         echo "    command: \"python modelling.py\"" >> MLproject
+        
+        echo "MLproject content:"
+        cat MLproject
+        echo "Conda file exists:"
+        ls -la conda.yaml
         
         mlflow run . --env-manager=local
     
