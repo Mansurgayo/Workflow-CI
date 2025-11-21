@@ -1,3 +1,4 @@
+import os
 import mlflow
 import mlflow.sklearn
 import pandas as pd
@@ -5,8 +6,12 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score
 
+# Tentukan path dataset relatif terhadap script
+BASE_DIR = os.path.dirname(__file__)
+DATA_PATH = os.path.join(BASE_DIR, "dataset", "cleaned_dataset.csv")
+
 # Load dataset
-df = pd.read_csv("namadataset_preprocessing/data.csv")
+df = pd.read_csv(DATA_PATH)
 
 # Sesuaikan kolom target
 X = df.drop("Outcome", axis=1)  # Fitur
