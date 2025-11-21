@@ -5,5 +5,5 @@ env_manager: local
 entry_points:
   main:
     parameters:
-      data_path: {type: str, default: "namadataset_preprocessing/dataset_clean.csv"}
+      data_path: {type: str, default: "namadataset_preprocessing/cleaned_dataset.csv"}
     command: "python modelling.py --data_path {data_path}"
