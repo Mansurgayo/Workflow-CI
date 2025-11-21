@@ -15,7 +15,7 @@ jobs:
         run: echo "Job setup started"
 
       # 2. Run actions/checkout@v3
-      - name: Run actions/checkout@v3
+      - name: Checkout repository
         uses: actions/checkout@v3
 
       # 3. Set up Python 3.12.7 & Conda environment
@@ -31,11 +31,11 @@ jobs:
       - name: Check Env
         run: conda list
 
-      # 5. Install dependencies
+      # 5. Install dependencies (all from conda.yaml, no requirements.txt)
       - name: Install dependencies
-        run: conda run -n mlflow-env pip install --upgrade pip
+        run: echo "Dependencies installed via conda.yaml"
 
-      # 6. Run mlflow project
+      # 6. Run MLflow project
       - name: Run mlflow project
         working-directory: MLProject
         run: conda run -n mlflow-env mlflow run . --env-manager=local
@@ -48,46 +48,50 @@ jobs:
           echo "run_id=$RUN_ID" >> $GITHUB_OUTPUT
           echo "Latest Run ID: $RUN_ID"
 
-      # 8. Upload to Google Drive
+      # 8. Install Python dependencies (safety, from conda.yaml)
+      - name: Install Python dependencies
+        run: echo "All Python dependencies already handled by conda.yaml"
+
+      # 9. Upload to Google Drive
       - name: Upload to Google Drive
         run: |
           echo "${{ secrets.RCLONE_CONFIG }}" > rclone.conf
           conda run -n mlflow-env rclone copy MLProject/mlruns/0/${{ steps.getrun.outputs.run_id }}/artifacts remote:mlflow-artifacts --config rclone.conf
 
-      # 9. Build Docker Model
+      # 10. Build Docker Model
       - name: Build Docker Model
         working-directory: MLProject
         run: conda run -n mlflow-env mlflow models build-docker \
           -m mlruns/0/${{ steps.getrun.outputs.run_id }}/artifacts/model \
           -n mlflow_model_image
 
-      # 10. Log in to Docker Hub
+      # 11. Log in to Docker Hub
       - name: Log in to Docker Hub
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      # 11. Tag Docker Image
+      # 12. Tag Docker Image
       - name: Tag Docker Image
         run: docker tag mlflow_model_image ${{ secrets.DOCKERHUB_USERNAME }}/mlflow_model_image:latest
 
-      # 12. Push Docker Image
+      # 13. Push Docker Image
       - name: Push Docker Image
         run: docker push ${{ secrets.DOCKERHUB_USERNAME }}/mlflow_model_image:latest
 
-      # 13. Post Log in to Docker Hub
+      # 14. Post Log in to Docker Hub
       - name: Post Log in to Docker Hub
         run: echo "Post Docker login complete."
 
-      # 14. Post Set up Python 3.12.7
+      # 15. Post Set up Python 3.12.7
       - name: Post Set up Python 3.12.7
         run: echo "Post Python setup complete."
 
-      # 15. Post Run actions/checkout@v3
+      # 16. Post Run actions/checkout@v3
       - name: Post Run actions/checkout@v3
         run: echo "Post checkout complete."
 
-      # 16. Complete job
+      # 17. Complete job
       - name: Complete job
         run: echo "CI Workflow finished successfully."
