@@ -1,5 +1,5 @@
 # ==============================
-# modelling.py (VERSI MLFLOW PROJECT - KRITERIA 3)
+# modelling.py (VERSI MLFLOW PROJECT - KRITERIA 3 - FIXED)
 # ==============================
 
 import json
@@ -119,7 +119,7 @@ def load_and_preprocess_data(path):
     return X_train, X_test, y_train, y_test
 
 # ==========================
-# TRAINING - MODIFIKASI UTAMA
+# TRAINING - MODIFIKASI UTAMA UNTUK GITHUB ACTIONS
 # ==========================
 def train_and_tune(data_path, experiment_name="Diabetes_Prediction_CI"):
     X_train, X_test, y_train, y_test = load_and_preprocess_data(data_path)
@@ -130,7 +130,7 @@ def train_and_tune(data_path, experiment_name="Diabetes_Prediction_CI"):
 
     try:
         mlflow.set_experiment(experiment_name)
-        with mlflow.start_run():
+        with mlflow.start_run() as run:  # CAPTURE RUN OBJECT
             search_space = {
                 "C": Real(1e-6, 1e6, prior="log-uniform"),
                 "penalty": ["l1", "l2"],
@@ -190,7 +190,7 @@ def train_and_tune(data_path, experiment_name="Diabetes_Prediction_CI"):
             
             mlflow_model = Model(
                 artifact_path=MODEL_ARTIFACT_PATH, 
-                run_id=mlflow.active_run().info.run_id,
+                run_id=run.info.run_id,  # GUNAKAN run.info.run_id
                 signature=signature
             )
             
@@ -222,9 +222,13 @@ def train_and_tune(data_path, experiment_name="Diabetes_Prediction_CI"):
             # 4. LOG SEMUA ARTEFAK
             mlflow.log_artifacts(MODEL_ARTIFACT_PATH, artifact_path="model")
             
-            print(f"\n🎉 Training selesai. Run ID: {mlflow.active_run().info.run_id}")
+            print(f"\n🎉 Training selesai. Run ID: {run.info.run_id}")
             
-            return mlflow.active_run().info.run_id
+            # SIMPAN RUN_ID KE FILE UNTUK GITHUB ACTIONS
+            with open("run_id.txt", "w") as f:
+                f.write(run.info.run_id)
+            
+            return run.info.run_id
             
     finally:
         # PEMBERSIHAN FILE LOKAL
@@ -255,8 +259,8 @@ def main():
     if not os.path.exists(args.data_path):
         raise FileNotFoundError(f"Dataset not found at: {args.data_path}")
     
+    # HAPUS DAGSHUB INTEGRATION UNTUK KRITERIA 3
+    # Gunakan MLflow default tracking (local filesystem)
+    
     run_id = train_and_tune(args.data_path, args.experiment_name)
     print(f"✅ Training completed successfully! Run ID: {run_id}")
-
-if __name__ == "__main__":
-    main()
