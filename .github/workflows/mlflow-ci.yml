@@ -29,12 +29,9 @@ jobs:
     - name: Check Environment
       run: |
         python --version
-        conda --version || echo "Conda not installed yet"
         echo "Current directory: $(pwd)"
         echo "Repository contents:"
         ls -la
-        echo "Checking for conda.yaml:"
-        find . -name "conda.yaml" -o -name "environment.yml"
     
     # Install dependencies
     - name: Install system dependencies
@@ -48,52 +45,43 @@ jobs:
         wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh
         bash miniconda.sh -b -p $HOME/miniconda
         echo "$HOME/miniconda/bin" >> $GITHUB_PATH
+        source $HOME/miniconda/bin/activate
+        conda init bash
     
     # Install Python dependencies via Conda
     - name: Install Python dependencies with Conda
       run: |
-        export PATH="$HOME/miniconda/bin:$PATH"
-        conda init bash
-        source ~/.bashrc
+        source $HOME/miniconda/bin/activate
         
         # Check if conda.yaml exists
         if [ -f "conda.yaml" ]; then
           echo "Creating environment from conda.yaml..."
-          conda env create -f conda.yaml
-          conda activate mlflow-env  # Ganti dengan nama environment dari conda.yaml
+          conda env create -f conda.yaml -n mlflow-env
         else
           echo "No conda.yaml found, creating basic environment..."
-          conda create -n mlflow-env python=3.12.7 -y
-          conda activate mlflow-env
-          conda install -c conda-forge mlflow pandas numpy scikit-learn -y
+          conda create -n mlflow-env python=3.12.7 mlflow pandas numpy scikit-learn -y
         fi
-        
-        # Install MLflow jika belum terinstall
-        pip install mlflow
     
     # Set MLflow Tracking URI
     - name: Set MLflow Tracking URI
       run: |
-        export PATH="$HOME/miniconda/bin:$PATH"
-        source ~/.bashrc
-        conda activate mlflow-env
-        
-        if [ -n "${{ secrets.MLFLOW_TRACKING_URI }}" ]; then
-          echo "MLFLOW_TRACKING_URI=${{ secrets.MLFLOW_TRACKING_URI }}" >> $GITHUB_ENV
-        else
-          echo "MLFLOW_TRACKING_URI=file:///$(pwd)/mlruns" >> $GITHUB_ENV
-        fi
-        echo "Tracking URI: $MLFLOW_TRACKING_URI"
+        source $HOME/miniconda/bin/activate
+        conda run -n mlflow-env python -c "
+        import os
+        if os.getenv('MLFLOW_TRACKING_URI'):
+            print(f'Using existing MLFLOW_TRACKING_URI: {os.getenv(\\\"MLFLOW_TRACKING_URI\\\")}')
+        else:
+            tracking_uri = 'file://' + os.getcwd() + '/mlruns'
+            print(f'Setting MLFLOW_TRACKING_URI to: {tracking_uri}')
+            with open(os.getenv('GITHUB_ENV'), 'a') as f:
+                f.write(f'MLFLOW_TRACKING_URI={tracking_uri}\\n')
+        "
     
     # Run mlflow project dengan Conda
     - name: Run MLflow project
       run: |
-        export PATH="$HOME/miniconda/bin:$PATH"
-        source ~/.bashrc
-        conda activate mlflow-env
-        
-        echo "Running MLflow project with Conda..."
-        mlflow run . \
+        source $HOME/miniconda/bin/activate
+        conda run -n mlflow-env mlflow run . \
           --experiment-name "github-actions-experiment" \
           --env-manager conda
       env:
