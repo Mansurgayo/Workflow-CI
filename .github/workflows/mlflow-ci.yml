@@ -29,7 +29,7 @@ jobs:
     - name: Run mlllow project
       run: |
         cd MLProject
-        mlflow run . --experiment-name="github-actions-experiment"
+        mlflow run . --no-conda --experiment-name="github-actions-experiment"
         
     - name: Get latest Mlllow run_id
       id: get-run
@@ -45,8 +45,8 @@ jobs:
     - name: Upload to Google Drive
       run: |
         echo "Uploading artifacts to Google Drive..."
-        # Upload mlruns folder to Google Drive
-        gdown --upload MLProject/mlruns/ || echo "Google Drive upload skipped"
+        # Simpan artifacts untuk Google Drive
+        tar -czf mlflow-artifacts.tar.gz MLProject/mlruns/
         
     - name: Build Docker Model
       run: |
