@@ -94,7 +94,7 @@ jobs:
           docker push ${{ secrets.DOCKERHUB_USERNAME }}/mlflow_model_image:latest
 
       # -------------------------------
-      # 9. Finish
+      # 9. Complete job
       # -------------------------------
       - name: Complete job
         run: echo "CI Workflow finished successfully."
