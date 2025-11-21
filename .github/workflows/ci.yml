@@ -27,8 +27,8 @@ jobs:
           python -m pip install --upgrade pip
           pip install mlflow scikit-learn pandas numpy matplotlib
 
-      - name: Run MLflow Project without Conda
-        run: mlflow run MLProject -e train --no-conda
+      - name: Run MLflow training script
+        run: python MLProject/modelling.py
 
       - name: Get latest MLflow run_id
         run: |
