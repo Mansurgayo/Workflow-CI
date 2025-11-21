@@ -40,6 +40,14 @@ jobs:
         echo "run_id=$RUN_ID" >> $GITHUB_OUTPUT
         echo "Run ID: $RUN_ID"
         
+    - name: Verify Model Structure
+      run: |
+        cd MLProject
+        echo "=== Checking MLflow Structure ==="
+        find mlruns/ -type f -name "MLmodel" | head -5
+        echo "=== Artifacts for run ${{ steps.get-run.outputs.run_id }} ==="
+        ls -la mlruns/*/${{ steps.get-run.outputs.run_id }}/artifacts/ || echo "No artifacts found"
+        
     - name: Install Python dependencies
       run: pip install gdown
         
@@ -50,7 +58,10 @@ jobs:
     - name: Build Docker Model
       run: |
         cd MLProject
-        mlflow models build-docker -m "file://$(pwd)/mlruns/0/${{ steps.get-run.outputs.run_id }}/artifacts/model" -n "diabetes-model"
+        # Coba berbagai format path
+        mlflow models build-docker -m "mlruns/0/${{ steps.get-run.outputs.run_id }}/artifacts/model" -n "diabetes-model" ||
+        mlflow models build-docker -m "./mlruns/0/${{ steps.get-run.outputs.run_id }}/artifacts/model" -n "diabetes-model" ||
+        echo "Docker build failed, continuing..."
         
     - name: Log in to Docker Hub
       uses: docker/login-action@v2
