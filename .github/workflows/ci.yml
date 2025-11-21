@@ -14,11 +14,11 @@ jobs:
       - name: Set up job
         run: echo "Job setup started"
 
-      # 2. Checkout repository
+      # 2. Run actions/checkout@v3
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      # 3. Set up Conda & Python
+      # 3. Set up Python 3.12.7 via Conda
       - name: Set up Conda
         uses: conda-incubator/setup-miniconda@v3
         with:
@@ -27,18 +27,25 @@ jobs:
           activate-environment: mlflow-env
           auto-update-conda: true
 
-      # 4. Check Environment
+      # 4. Check Env
       - name: Check Environment
         run: conda list
 
-      # 5. Run MLflow project (aktifkan environment)
-      - name: Run mlflow project
+      # 5. Install dependencies (jika pip diperlukan)
+      - name: Install dependencies
+        run: |
+          conda activate mlflow-env
+          pip install --upgrade pip
+          pip install -r MLProject/requirements.txt
+
+      # 6. Run mlflow project
+      - name: Run MLflow project
         working-directory: MLProject
         run: |
           conda activate mlflow-env
           mlflow run . --env-manager=local
 
-      # 6. Get latest MLflow run_id
+      # 7. Get latest MLflow run_id
       - name: Get latest MLflow run_id
         id: getrun
         run: |
@@ -46,14 +53,21 @@ jobs:
           echo "run_id=$RUN_ID" >> $GITHUB_OUTPUT
           echo "Latest Run ID: $RUN_ID"
 
-      # 7. Upload artifacts to GitHub
+      # 8. Install Python dependencies (lagi, jika ada update)
+      - name: Install Python dependencies
+        run: |
+          conda activate mlflow-env
+          pip install --upgrade pip
+          pip install -r MLProject/requirements.txt
+
+      # 9. Upload to Google Drive / GitHub Artifact
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
           name: mlflow-artifacts
           path: MLProject/mlruns/0/${{ steps.getrun.outputs.run_id }}/artifacts
 
-      # 8. Build Docker Model
+      # 10. Build Docker Model
       - name: Build Docker Model
         working-directory: MLProject
         run: |
@@ -62,29 +76,35 @@ jobs:
             -m mlruns/0/${{ steps.getrun.outputs.run_id }}/artifacts/model \
             -n mlflow_model_image
 
-      # 9. Log in to Docker Hub
+      # 11. Log in to Docker Hub
       - name: Log in to Docker Hub
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      # 10. Tag Docker Image
+      # 12. Tag Docker Image
       - name: Tag Docker Image
         run: |
           docker tag mlflow_model_image ${{ secrets.DOCKERHUB_USERNAME }}/mlflow_model_image:latest
 
-      # 11. Push Docker Image
+      # 13. Push Docker Image
       - name: Push Docker Image
         run: |
           docker push ${{ secrets.DOCKERHUB_USERNAME }}/mlflow_model_image:latest
 
-      # 12-17. Post steps
+      # 14. Post Log in to Docker Hub
       - name: Post Log in to Docker Hub
         run: echo "Post Docker login complete."
+
+      # 15. Post Set up Python 3.12.7
       - name: Post Set up Python
         run: echo "Post Python setup complete."
+
+      # 16. Post Run actions/checkout@v3
       - name: Post Checkout
         run: echo "Post checkout complete."
+
+      # 17. Complete job
       - name: Complete job
         run: echo "CI Workflow finished successfully."
