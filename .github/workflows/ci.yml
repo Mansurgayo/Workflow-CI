@@ -11,27 +11,31 @@ jobs:
 
     steps:
       # 1. Checkout repository
-      - name: Checkout repository
+      - name: Run actions/checkout@v3
         uses: actions/checkout@v3
 
-      # 2. Python Environment
-      - name: Set up Python 3.10
+      # 2. Set up Python 3.12.7
+      - name: Set up Python 3.12.7
         uses: actions/setup-python@v4
         with:
-          python-version: "3.10"
+          python-version: "3.12.7"
 
-      # 3. Install Dependencies
+      # 3. Check Env (opsional)
+      - name: Check Env
+        run: env
+
+      # 4. Install dependencies
       - name: Install dependencies
         run: |
           pip install --upgrade pip
-          pip install mlflow docker scikit-learn pandas numpy
+          pip install mlflow docker scikit-learn pandas numpy requests
 
-      # 4. Run MLflow Project
-      - name: Run MLflow project
+      # 5. Run MLflow project
+      - name: Run mlflow project
         working-directory: MLProject
         run: mlflow run . --env-manager=local
 
-      # 5. Get latest run_id
+      # 6. Get latest MLflow run_id
       - name: Get latest MLflow run_id
         id: getrun
         run: |
@@ -39,24 +43,32 @@ jobs:
           echo "run_id=$RUN_ID" >> $GITHUB_OUTPUT
           echo "Latest Run ID: $RUN_ID"
 
-      # 6. Install rclone
-      - name: Install rclone
-        run: sudo apt install rclone -y
-
-      # 7. Configure rclone dari GitHub Secret (Base64-safe)
-      - name: Configure rclone
+      # 7. Install Python dependencies (lagi, sesuai tahapan)
+      - name: Install Python dependencies
         run: |
+          pip install --upgrade pip
+          pip install mlflow docker scikit-learn pandas numpy requests
+
+      # 8. Upload to Google Drive (ambil artifact dari DagsHub)
+      - name: Upload to Google Drive
+        run: |
+          mkdir -p MLProject/mlruns/0/${{ steps.getrun.outputs.run_id }}
+          # Download artifact dari DagsHub
+          ARTIFACT_URL="https://dagshub.com/Mansurgayo/Membangun_model/experiments/download/mlruns/0/datasets/artifacts/model"
+          wget -O MLProject/mlruns/0/${{ steps.getrun.outputs.run_id }}/model.zip $ARTIFACT_URL
+          unzip MLProject/mlruns/0/${{ steps.getrun.outputs.run_id }}/model.zip -d MLProject/mlruns/0/${{ steps.getrun.outputs.run_id }}
+
+          # Install rclone
+          sudo apt install rclone -y
           mkdir -p ~/.config/rclone/
           echo "${{ secrets.RCLONE_CONFIG_MYDRIVE_BASE64 }}" | base64 --decode > ~/.config/rclone/rclone.conf
 
-      # 8. Upload MLflow artifacts ke Google Drive
-      - name: Upload to Google Drive
-        run: |
+          # Upload ke Google Drive
           rclone --config ~/.config/rclone/rclone.conf copy \
             MLProject/mlruns/0/${{ steps.getrun.outputs.run_id }} \
             mydrive:MLflowArtifacts/${{ steps.getrun.outputs.run_id }} --progress
 
-      # 9. Build Docker Image
+      # 9. Build Docker Model
       - name: Build Docker Model
         working-directory: MLProject
         run: |
@@ -64,21 +76,23 @@ jobs:
             -m mlruns/0/${{ steps.getrun.outputs.run_id }}/artifacts/model \
             -n mlflow_model_image
 
-      # 10. Docker Hub Push
+      # 10. Log in to Docker Hub
       - name: Log in to Docker Hub
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
+      # 11. Tag Docker Image
       - name: Tag Docker Image
         run: |
           docker tag mlflow_model_image ${{ secrets.DOCKERHUB_USERNAME }}/mlflow_model_image:latest
 
+      # 12. Push Docker Image
       - name: Push Docker Image
         run: |
           docker push ${{ secrets.DOCKERHUB_USERNAME }}/mlflow_model_image:latest
 
-      # 11. Complete job
+      # 13. Complete job
       - name: Complete job
         run: echo "CI Workflow finished successfully."
