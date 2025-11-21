@@ -57,13 +57,14 @@ jobs:
         run: sudo apt install rclone -y
 
       - name: Configure rclone
-        run: echo "${{ secrets.RCLONE_CONF }}" > rclone.conf
+        run: |
+          mkdir -p ~/.config/rclone/
+          echo "${{ secrets.GDRIVE_SERVICE_ACCOUNT }}" > ~/.config/rclone/gdrive-service-account.json
+          rclone config create mydrive drive service_account_file ~/.config/rclone/gdrive-service-account.json
 
       - name: Upload to Google Drive
         run: |
-          rclone --config=rclone.conf copy \
-          MLProject/mlruns/0/${{ steps.getrun.outputs.run_id }} \
-          gdrive:mlflow_artifacts/${{ steps.getrun.outputs.run_id }}
+          rclone copy MLProject/mlruns/0/${{ steps.getrun.outputs.run_id }} mydrive:mlflow_artifacts/${{ steps.getrun.outputs.run_id }} --progress
 
       # -------------------------------
       # 7. Build Docker Image
