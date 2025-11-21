@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # 1. Checkout Code
+      # 1. Checkout repository
       - name: Checkout repository
         uses: actions/checkout@v3
 
@@ -29,8 +29,7 @@ jobs:
       # 4. Run MLflow Project
       - name: Run MLflow project
         working-directory: MLProject
-        run: |
-          mlflow run . --env-manager=local
+        run: mlflow run . --env-manager=local
 
       # 5. Get latest run_id
       - name: Get latest MLflow run_id
@@ -44,18 +43,18 @@ jobs:
       - name: Install rclone
         run: sudo apt install rclone -y
 
-      # 7. Configure rclone untuk My Drive pakai OAuth token (multiline-safe)
+      # 7. Configure rclone dari GitHub Secret
       - name: Configure rclone
         run: |
           mkdir -p ~/.config/rclone/
-          cat <<EOF > ~/.config/rclone/rclone.conf
-${{ secrets.RCLONE_CONFIG_MYDRIVE }}
-EOF
+          echo "${{ secrets.RCLONE_CONFIG_MYDRIVE }}" > ~/.config/rclone/rclone.conf
 
-      # 8. Upload to Google Drive My Drive
+      # 8. Upload MLflow artifacts ke Google Drive
       - name: Upload to Google Drive
         run: |
-          rclone copy MLProject/mlruns/0/${{ steps.getrun.outputs.run_id }} mydrive:MLflowArtifacts/${{ steps.getrun.outputs.run_id }} --progress
+          rclone --config ~/.config/rclone/rclone.conf copy \
+            MLProject/mlruns/0/${{ steps.getrun.outputs.run_id }} \
+            mydrive:MLflowArtifacts/${{ steps.getrun.outputs.run_id }} --progress
 
       # 9. Build Docker Image
       - name: Build Docker Model
