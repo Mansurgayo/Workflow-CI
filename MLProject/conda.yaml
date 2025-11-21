@@ -20,3 +20,4 @@ dependencies:
       - Flask-CORS==6.0.1
       - docker==7.1.0
       - fastapi==0.121.3
+      - dagshub==0.6.0  # <- tambahkan ini
