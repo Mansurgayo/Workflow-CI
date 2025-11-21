@@ -10,11 +10,6 @@ jobs:
       run: echo "Starting MLflow job..."
     - name: Run actions/checkout@v3
       uses: actions/checkout@v3
-    - name: Setup Miniconda
-      uses: conda-incubator/setup-miniconda@v2
-      with:
-        auto-update-conda: true
-        python-version: 3.8
     - name: Set up Python 3.12.7
       uses: actions/setup-python@v4
       with:
@@ -23,24 +18,26 @@ jobs:
       run: |
         python --version
         pip --version
-        conda --version
     - name: Install dependencies
       run: |
         pip install mlflow scikit-learn pandas numpy matplotlib scikit-optimize joblib pyyaml
-    - name: Run mlllow project
+    - name: Run modelling.py directly (Alternative to mlflow run)
       run: |
         cd MLProject
-        mlflow run . --experiment-name="github-actions-experiment"
-    - name: Get latest Mlllow run_id
+        python modelling.py --data_path="./dataset/cleaned_dataset.csv" --experiment_name="github-actions-experiment"
+    - name: Get latest MLflow run_id
       id: get-run
       run: |
         cd MLProject
         RUN_ID=$(mlflow runs list --experiment-name="github-actions-experiment" | grep -oP '(?<= )\w+(?= )' | head -1)
         echo "run_id=$RUN_ID" >> $GITHUB_OUTPUT
+        echo "Run ID: $RUN_ID"
     - name: Install Python dependencies
       run: pip install gdown
     - name: Upload to Google Drive
-      run: echo "Uploading artifacts to Google Drive..."
+      run: |
+        echo "Artifacts would be uploaded to Google Drive here"
+        ls -la MLProject/mlruns/
     - name: Build Docker Model
       run: |
         cd MLProject
