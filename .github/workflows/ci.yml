@@ -10,61 +10,64 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      # -------------------------------
+      # 1. Checkout Code
+      # -------------------------------
       - name: Checkout repository
         uses: actions/checkout@v3
 
+      # -------------------------------
+      # 2. Python Environment
+      # -------------------------------
       - name: Set up Python 3.10
         uses: actions/setup-python@v4
         with:
           python-version: "3.10"
 
-      - name: Check Env
-        run: |
-          python --version
-          echo "Directory:"
-          ls -R
-
-      # ----------------------------------------------------
-      # Install MLflow + dependencies (VERSION FIXED)
-      # ----------------------------------------------------
+      # -------------------------------
+      # 3. Install Dependencies
+      # -------------------------------
       - name: Install dependencies
         run: |
           pip install --upgrade pip
-          pip install mlflow-skinny docker scikit-learn pandas numpy
+          pip install mlflow docker scikit-learn pandas numpy
 
-      # ----------------------------------------------------
-      # Run MLflow Project
-      # ----------------------------------------------------
-      - name: Run mlflow project
+      # -------------------------------
+      # 4. Run MLflow Project (NO CONDA)
+      # -------------------------------
+      - name: Run MLflow project
         working-directory: MLProject
-        run: mlflow run .
+        run: |
+          mlflow run . --env-manager=local
 
-      # ----------------------------------------------------
-      # Get latest MLflow run_id
-      # ----------------------------------------------------
+      # -------------------------------
+      # 5. Get latest run_id
+      # -------------------------------
       - name: Get latest MLflow run_id
         id: getrun
         run: |
           RUN_ID=$(ls -t MLProject/mlruns/0 | head -n 1)
           echo "run_id=$RUN_ID" >> $GITHUB_OUTPUT
+          echo "Latest Run ID: $RUN_ID"
 
-      # ----------------------------------------------------
-      # UPLOAD ARTIFACT TO GOOGLE DRIVE (Rclone Method)
-      # ----------------------------------------------------
+      # -------------------------------
+      # 6. Upload Artifact to Google Drive
+      # -------------------------------
       - name: Install rclone
         run: sudo apt install rclone -y
 
       - name: Configure rclone
-        run: |
-          echo "${{ secrets.RCLONE_CONF }}" > rclone.conf
+        run: echo "${{ secrets.RCLONE_CONF }}" > rclone.conf
 
       - name: Upload to Google Drive
         run: |
-          rclone --config=rclone.conf copy MLProject/mlruns/0/${{ steps.getrun.outputs.run_id }} gdrive:mlflow_artifacts/${{ steps.getrun.outputs.run_id }}
+          rclone --config=rclone.conf copy \
+          MLProject/mlruns/0/${{ steps.getrun.outputs.run_id }} \
+          gdrive:mlflow_artifacts/${{ steps.getrun.outputs.run_id }}
 
-      # ----------------------------------------------------
-      # Build Docker Image
-      # ----------------------------------------------------
+      # -------------------------------
+      # 7. Build Docker Image
+      # -------------------------------
       - name: Build Docker Model
         working-directory: MLProject
         run: |
@@ -72,9 +75,9 @@ jobs:
             -m mlruns/0/${{ steps.getrun.outputs.run_id }}/artifacts/model \
             -n mlflow_model_image
 
-      # ----------------------------------------------------
-      # Docker Hub Login + Push
-      # ----------------------------------------------------
+      # -------------------------------
+      # 8. Docker Hub Push
+      # -------------------------------
       - name: Log in to Docker Hub
         uses: docker/login-action@v3
         with:
@@ -83,18 +86,15 @@ jobs:
 
       - name: Tag Docker Image
         run: |
-          docker tag mlflow_model_image:latest \
+          docker tag mlflow_model_image \
           ${{ secrets.DOCKERHUB_USERNAME }}/mlflow_model_image:latest
 
       - name: Push Docker Image
         run: |
           docker push ${{ secrets.DOCKERHUB_USERNAME }}/mlflow_model_image:latest
 
-      # ----------------------------------------------------
-      # End Job
-      # ----------------------------------------------------
-      - name: Post Log in to Docker Hub
-        run: echo "Docker push completed."
-
+      # -------------------------------
+      # 9. Finish
+      # -------------------------------
       - name: Complete job
-        run: echo "CI Workflow finished."
+        run: echo "CI Workflow finished successfully."

@@ -1,6 +1,6 @@
 name: mlflow-training-project
 
-conda_env: conda.yaml
+env_manager: local
 
 entry_points:
   main:
