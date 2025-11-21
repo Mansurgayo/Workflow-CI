@@ -9,27 +9,39 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      # 1. Set up job (penanda langkah awal)
+      - name: Set up job
+        run: echo "🎯 Starting MLflow CI Basic Job..."
+
+      # 2. Checkout repository
       - name: Checkout repository
         uses: actions/checkout@v3
 
+      # 3. Set up Python
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
           python-version: '3.12.7'
 
+      # 4. Check Python environment
       - name: Check Python environment
         run: |
           python --version
           pip list
 
+      # 5. Install dependencies
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
           pip install mlflow scikit-learn pandas numpy matplotlib
 
-      - name: Run MLflow training script
-        run: python MLProject/modelling.py
+      # 6. Run MLflow Project without Conda
+      - name: Run MLflow Project
+        run: mlflow run MLProject -e train
 
+      # 7. Get latest MLflow run_id
       - name: Get latest MLflow run_id
         run: |
-          mlflow runs list --experiment-name Workflow_CI_Experiment --order-by attribute.start_time DESC --max-results 1
+          EXP_ID=$(mlflow experiments list | grep Workflow_CI_Experiment | awk '{print $1}')
+          echo "Experiment ID: $EXP_ID"
+          mlflow runs list --experiment-id $EXP_ID --order-by attribute.start_time DESC --max-results 1
