@@ -1,11 +1,10 @@
 name: mlflow-env
-
 channels:
   - conda-forge
   - defaults
 
 dependencies:
-  - python=3.12
+  - python=3.10
   - pip
   - pip:
       - mlflow==3.6.0
@@ -15,6 +14,5 @@ dependencies:
       - scikit-optimize==0.10.2
       - matplotlib==3.10.7
       - seaborn==0.12.3
-      - requests==2.31.0
-      - docker==7.1.0
-      - rclone==1.62.2
+      - requests
+      - docker
