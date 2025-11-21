@@ -9,7 +9,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # 1. Set up job (penanda langkah awal)
+      # 1. Set up job
       - name: Set up job
         run: echo "🎯 Starting MLflow CI Basic Job..."
 
@@ -35,9 +35,9 @@ jobs:
           python -m pip install --upgrade pip
           pip install mlflow scikit-learn pandas numpy matplotlib
 
-      # 6. Run MLflow Project without Conda
-      - name: Run MLflow Project
-        run: mlflow run MLProject -e train
+      # 6. Run MLflow Project **tanpa Conda**
+      - name: Run MLflow Project without Conda
+        run: mlflow run MLProject -e train --no-conda
 
       # 7. Get latest MLflow run_id
       - name: Get latest MLflow run_id
