@@ -43,11 +43,11 @@ jobs:
       - name: Install rclone
         run: sudo apt install rclone -y
 
-      # 7. Configure rclone dari GitHub Secret
+      # 7. Configure rclone dari GitHub Secret (Base64-safe)
       - name: Configure rclone
         run: |
           mkdir -p ~/.config/rclone/
-          echo "${{ secrets.RCLONE_CONFIG_MYDRIVE }}" > ~/.config/rclone/rclone.conf
+          echo "${{ secrets.RCLONE_CONFIG_MYDRIVE_BASE64 }}" | base64 --decode > ~/.config/rclone/rclone.conf
 
       # 8. Upload MLflow artifacts ke Google Drive
       - name: Upload to Google Drive
