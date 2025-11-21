@@ -24,32 +24,60 @@ jobs:
       uses: actions/setup-python@v4
       with:
         python-version: '3.12.7'
-        cache: 'pip'
     
     # Check Env
     - name: Check Environment
       run: |
         python --version
-        pip --version
+        conda --version || echo "Conda not installed yet"
         echo "Current directory: $(pwd)"
+        echo "Repository contents:"
         ls -la
+        echo "Checking for conda.yaml:"
+        find . -name "conda.yaml" -o -name "environment.yml"
     
     # Install dependencies
     - name: Install system dependencies
       run: |
         sudo apt-get update
-        sudo apt-get install -y curl
+        sudo apt-get install -y curl wget
     
-    # Install Python dependencies
-    - name: Install Python dependencies
+    # Install Miniconda
+    - name: Install Miniconda
       run: |
-        python -m pip install --upgrade pip
-        if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
-        pip install mlflow boto3 google-cloud-storage
+        wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh
+        bash miniconda.sh -b -p $HOME/miniconda
+        echo "$HOME/miniconda/bin" >> $GITHUB_PATH
+    
+    # Install Python dependencies via Conda
+    - name: Install Python dependencies with Conda
+      run: |
+        export PATH="$HOME/miniconda/bin:$PATH"
+        conda init bash
+        source ~/.bashrc
+        
+        # Check if conda.yaml exists
+        if [ -f "conda.yaml" ]; then
+          echo "Creating environment from conda.yaml..."
+          conda env create -f conda.yaml
+          conda activate mlflow-env  # Ganti dengan nama environment dari conda.yaml
+        else
+          echo "No conda.yaml found, creating basic environment..."
+          conda create -n mlflow-env python=3.12.7 -y
+          conda activate mlflow-env
+          conda install -c conda-forge mlflow pandas numpy scikit-learn -y
+        fi
+        
+        # Install MLflow jika belum terinstall
+        pip install mlflow
     
     # Set MLflow Tracking URI
     - name: Set MLflow Tracking URI
       run: |
+        export PATH="$HOME/miniconda/bin:$PATH"
+        source ~/.bashrc
+        conda activate mlflow-env
+        
         if [ -n "${{ secrets.MLFLOW_TRACKING_URI }}" ]; then
           echo "MLFLOW_TRACKING_URI=${{ secrets.MLFLOW_TRACKING_URI }}" >> $GITHUB_ENV
         else
@@ -57,44 +85,56 @@ jobs:
         fi
         echo "Tracking URI: $MLFLOW_TRACKING_URI"
     
-    # Run mlflow project
+    # Run mlflow project dengan Conda
     - name: Run MLflow project
       run: |
+        export PATH="$HOME/miniconda/bin:$PATH"
+        source ~/.bashrc
+        conda activate mlflow-env
+        
+        echo "Running MLflow project with Conda..."
         mlflow run . \
           --experiment-name "github-actions-experiment" \
-          --env-manager local
+          --env-manager conda
       env:
         MLFLOW_TRACKING_URI: ${{ env.MLFLOW_TRACKING_URI }}
     
     # Upload to Google Drive
     - name: Upload to Google Drive
+      if: success()
       run: |
         # Install rclone
-        curl https://rclone.org/install.sh | sudo bash
+        echo "Installing rclone..."
+        curl -s https://rclone.org/install.sh | sudo bash
         
         # Create rclone config directory
         mkdir -p ~/.config/rclone
         
-        # Configure rclone dengan service account (gunakan secrets)
-        echo "${{ secrets.RCLONE_CONFIG }}" > ~/.config/rclone/rclone.conf
-        
-        # Create timestamp for folder name
-        TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
-        
-        # Upload mlruns directory to Google Drive
-        rclone copy ./mlruns/ mydrive:/mlflow-experiments/${{ github.repository }}/run_${TIMESTAMP}_${{ github.run_id }}/ -v
-        
-        echo "Upload completed to Google Drive"
+        # Configure rclone
+        if [ -n "${{ secrets.RCLONE_CONFIG }}" ]; then
+          echo "Configuring rclone..."
+          echo "${{ secrets.RCLONE_CONFIG }}" > ~/.config/rclone/rclone.conf
+          
+          # Create timestamp for folder name
+          TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
+          
+          # Upload mlruns directory to Google Drive
+          rclone copy ./mlruns/ mydrive:/mlflow-experiments/${{ github.repository }}/run_${TIMESTAMP}_${{ github.run_id }}/ -v
+          
+          echo "Upload completed to Google Drive"
+        else
+          echo "RCLONE_CONFIG secret not set, skipping Google Drive upload"
+        fi
     
     # Post Set up Python 3.12.7
     - name: Post Python setup cleanup
       if: always()
-      run: echo "Cleaning up Python environment..."
+      run: echo "Python setup cleanup completed"
     
     # Post Run actions/checkout@v3  
     - name: Post checkout cleanup
       if: always()
-      run: echo "Cleaning up checkout files..."
+      run: echo "Checkout cleanup completed"
     
     # Complete job
     - name: Complete job
@@ -102,4 +142,4 @@ jobs:
       run: |
         echo "Job completed with status: ${{ job.status }}"
         echo "Run ID: ${{ github.run_id }}"
-        echo "See results in Google Drive"
+        echo "Results saved in mlruns/"
