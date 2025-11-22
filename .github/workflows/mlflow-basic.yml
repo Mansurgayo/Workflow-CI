@@ -43,42 +43,40 @@ jobs:
       run: |
         python -c "import mlflow; mlflow.set_tracking_uri('./MLProject/mlruns'); print('✅ MLflow Tracking URI set to ./MLProject/mlruns')"
 
-    # 7. Prepare dataset
-    - name: Prepare dataset
-      run: |
-        mkdir -p data
-        cp MLProject/dataset/cleaned_dataset.csv data/dataset.csv
-        echo "✅ Dataset prepared at data/dataset.csv"
-
-    # 8. Run MLflow project
+    # 7. Run MLflow project
     - name: Run MLflow project
       run: |
-        mlflow run MLProject \
-          --env-manager=local \
-          --experiment-name Workflow_CI_Experiment \
-          -e train \
-          -P data_path=data/dataset.csv || exit 1
+        if [ -f MLProject/dataset/cleaned_dataset.csv ]; then
+          mlflow run MLProject \
+            --env-manager=local \
+            --experiment-name Workflow_CI_Experiment \
+            -e train \
+            -P data_path=MLProject/dataset/cleaned_dataset.csv || exit 1
+        else
+          echo "❌ Dataset not found, aborting CI run"
+          exit 1
+        fi
 
-    # 9. Install additional Python dependencies
+    # 8. Install additional Python dependencies
     - name: Install additional Python dependencies
       run: |
         pip install requests numpy
 
-    # 10. Upload to Google Drive
+    # 9. Upload to Google Drive
     - name: Upload MLflow artifacts to Google Drive
       run: |
         mkdir -p drive_upload
         cp -r MLProject/mlruns drive_upload/
         # Gunakan gdown/rclone untuk upload ke Drive
 
-    # 11. Post Set up Python 3.12.7
-    - name: Post Python 3.12.7 setup
+    # 10. Post Python setup
+    - name: Post Python setup
       run: echo "✅ Post Python setup completed"
 
-    # 12. Post Run actions/checkout@v3
+    # 11. Post Checkout cleanup
     - name: Post Checkout cleanup
       run: echo "✅ Post checkout completed"
 
-    # 13. Complete job
+    # 12. Complete job
     - name: Complete job
       run: echo "🎯 MLflow Skilled CI Job completed"
