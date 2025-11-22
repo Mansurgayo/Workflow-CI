@@ -39,6 +39,7 @@ jobs:
 
       # 7️⃣ Get latest MLflow run_id
       - name: Get latest MLflow run_id
+        shell: bash
         run: |
           cd MLProject
           latest_run_id=$(mlflow runs list | head -n 2 | tail -n 1 | awk '{print $1}')
