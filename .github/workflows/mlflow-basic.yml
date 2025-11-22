@@ -11,35 +11,29 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # 1️⃣ Set up job
       - name: Set up job
         run: echo "✅ Job setup started"
 
-      # 2️⃣ Checkout repository
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      # 3️⃣ Set up Python 3.12.7
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
           python-version: 3.12.7
 
-      # 4️⃣ Check Environment
       - name: Check Env
         run: python --version && pip --version
 
-      # 5️⃣ Install dependencies
       - name: Install dependencies
         run: pip install --upgrade pip && pip install mlflow scikit-learn pandas numpy
 
-      # 6️⃣ Run MLflow project
       - name: Run MLflow project
-        run: python MLProject/modelling.py > modelling.log 2>&1
+        run: python MLProject/modelling.py
 
-      # 7️⃣ Get latest MLflow run_id
       - name: Get latest MLflow run_id
+        shell: bash
         run: |
           cd MLProject
-          latest_run_id=$(mlflow runs list | awk 'NR==2{print $1}')
+          latest_run_id=$(mlflow runs list | awk "NR==2 {print \$1}")
           echo "✅ Latest MLflow run_id: $latest_run_id"
