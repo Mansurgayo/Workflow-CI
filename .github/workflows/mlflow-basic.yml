@@ -2,38 +2,41 @@ name: MLflow Basic CI
 
 on:
   push:
-    branches:
-      - main
-  pull_request:
+    branches: [ main ]
+
+permissions:
+  contents: read
 
 jobs:
   mlflow-ci:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Set up job
-        run: echo "✅ Job setup started"
+      - name: 1. Set up job
+        run: echo "🚀 CI Started"
 
-      - name: Checkout repository
+      - name: 2. Run actions/checkout@v3
         uses: actions/checkout@v3
 
-      - name: Set up Python
+      - name: 3. Set up Python 3.12.7
         uses: actions/setup-python@v4
         with:
-          python-version: 3.12.7
+          python-version: "3.12.7"
 
-      - name: Check Env
-        run: python --version && pip --version
+      - name: 4. Check Env
+        run: |
+          python --version
+          pip --version
 
-      - name: Install dependencies
-        run: pip install --upgrade pip && pip install mlflow scikit-learn pandas numpy
+      - name: 5. Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install mlflow scikit-learn pandas numpy
 
-      - name: Run MLflow project
+      - name: 6. Run mlflow project
         run: python MLProject/modelling.py
 
-      - name: Get latest MLflow run_id
-        shell: bash
+      - name: 7. Get latest MLflow run_id
         run: |
-          cd MLProject
-          latest_run_id=$(mlflow runs list | awk "NR==2 {print \$1}")
-          echo "✅ Latest MLflow run_id: $latest_run_id"
+          run_id=$(mlflow runs list --experiment-name "Workflow_CI_Experiment" | awk 'NR==2 {print $1}')
+          echo "🎯 Latest run ID = $run_id"
