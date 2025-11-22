@@ -41,18 +41,20 @@ jobs:
       # 6. Set MLflow Tracking URI
       - name: Set MLflow Tracking URI
         run: |
-          python -c "import mlflow; mlflow.set_tracking_uri('./MLProject/mlruns'); print('✅ MLflow Tracking URI set to ./MLProject/mlruns')"
+          python -c "import mlflow; mlflow.set_tracking_uri('./mlruns'); print('✅ MLflow Tracking URI set to ./mlruns')"
+        working-directory: ./MLProject
 
       # 7. Run MLflow project
       - name: Run MLflow project
+        working-directory: ./MLProject
         run: |
-          if [ -f ./MLProject/dataset/cleaned_dataset.csv ]; then
+          if [ -f ./dataset/cleaned_dataset.csv ]; then
             echo "✅ Dataset ditemukan"
-            mlflow run MLProject \
+            mlflow run . \
               --env-manager=local \
               --experiment-name Workflow_CI_Experiment \
               -e train \
-              -P data_path=MLProject/dataset/cleaned_dataset.csv || exit 1
+              -P data_path=dataset/cleaned_dataset.csv || exit 1
           else
             echo "❌ Dataset tidak ditemukan, workflow gagal"
             exit 1
