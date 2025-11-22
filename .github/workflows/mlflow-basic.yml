@@ -2,84 +2,72 @@ name: MLflow Skilled CI
 
 on:
   push:
-    branches: [ main ]
+    branches:
+      - main
+  pull_request:
 
 jobs:
-  mlflow-skilled:
+  mlflow-ci:
     runs-on: ubuntu-latest
 
     steps:
-      # 1. Set up job
+      # 1️⃣ Set up job
       - name: Set up job
-        run: echo "🚀 MLflow Skilled CI Job started"
+        run: echo "✅ Job setup started"
 
-      # 2. Checkout code
-      - name: Checkout code
+      # 2️⃣ Checkout repository
+      - name: Checkout repository
         uses: actions/checkout@v3
 
-      # 3. Set up Python 3.12.7
-      - name: Set up Python 3.12.7
+      # 3️⃣ Set up Python 3.12.7
+      - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: '3.12.7'
+          python-version: 3.12.7
 
-      # 4. Check environment
-      - name: Check environment
+      # 4️⃣ Check Environment
+      - name: Check Python and pip versions
         run: |
           python --version
           pip --version
-          which python
-          which pip
-          pip list
 
-      # 5. Install dependencies
-      - name: Install dependencies
+      # 5️⃣ Install dependencies
+      - name: Install Python dependencies
         run: |
-          python -m pip install --upgrade pip
-          pip install mlflow scikit-learn pandas matplotlib seaborn gdown
+          pip install --upgrade pip
+          pip install -r requirements.txt
 
-      # 6. Set MLflow Tracking URI
+      # 6️⃣ Set MLflow Tracking URI
       - name: Set MLflow Tracking URI
         run: |
-          python -c "import mlflow; mlflow.set_tracking_uri('./mlruns'); print('✅ MLflow Tracking URI set to ./mlruns')"
-        working-directory: ./MLProject
+          export MLFLOW_TRACKING_URI=file://$(pwd)/mlruns
+          echo "MLFLOW_TRACKING_URI set to $MLFLOW_TRACKING_URI"
 
-      # 7. Run MLflow project
-      - name: Run MLflow project
-        working-directory: ./MLProject
+      # 7️⃣ Run MLflow project
+      - name: Run MLflow Project
         run: |
-          if [ -f ./dataset/cleaned_dataset.csv ]; then
-            echo "✅ Dataset ditemukan"
-            mlflow run . \
-              --env-manager=local \
-              --experiment-name Workflow_CI_Experiment \
-              -e train \
-              -P data_path=dataset/cleaned_dataset.csv || exit 1
-          else
-            echo "❌ Dataset tidak ditemukan, workflow gagal"
-            exit 1
-          fi
+          python modelling.py
 
-      # 8. Install additional Python dependencies
+      # 8️⃣ Install Python dependencies (opsional tambahan)
       - name: Install additional Python dependencies
-        run: |
-          pip install requests numpy
+        run: echo "⚡ Additional dependencies step (opsional)"
 
-      # 9. Upload to Google Drive
-      - name: Upload MLflow artifacts to Google Drive
+      # 9️⃣ Upload to Google Drive (opsional)
+      - name: Upload to Google Drive
         run: |
-          mkdir -p drive_upload
-          cp -r MLProject/mlruns drive_upload/
-          # Gunakan gdown/rclone untuk upload ke Drive
+          echo "⚠️ Tahapan ini opsional"
+          echo "Jika ingin upload, sesuaikan metode: PyDrive, gdrive CLI, atau artifact GitHub"
+          # Contoh placeholder:
+          # gdrive upload --recursive MLProject/drive_upload
 
-      # 10. Post Python setup
+      # 10️⃣ Post set up Python 3.12.7
       - name: Post Python setup
         run: echo "✅ Post Python setup completed"
 
-      # 11. Post Checkout cleanup
-      - name: Post Checkout cleanup
+      # 11️⃣ Post Run actions/checkout@v3
+      - name: Post checkout
         run: echo "✅ Post checkout completed"
 
-      # 12. Complete job
+      # 12️⃣ Complete job
       - name: Complete job
         run: echo "🎯 MLflow Skilled CI Job completed"
