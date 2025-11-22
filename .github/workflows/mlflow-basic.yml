@@ -25,8 +25,8 @@ jobs:
         with:
           auto-update-conda: true
           python-version: 3.12
-          environment-file: conda.yaml
-          activate-environment: mlflow-env  # ganti sesuai nama env di conda.yaml
+          environment-file: MLProject/conda.yaml  # path benar
+          activate-environment: mlflow-env       # nama environment di conda.yaml
           auto-activate-base: false
 
       # 4️⃣ Check Environment
@@ -47,8 +47,7 @@ jobs:
 
       # 7️⃣ Run MLflow project
       - name: Run MLflow Project
-        run: |
-          python modelling.py
+        run: python modelling.py
 
       # 8️⃣ Additional dependency step (opsional)
       - name: Install additional Python dependencies (optional)
@@ -59,7 +58,6 @@ jobs:
         run: |
           echo "⚠️ Tahapan ini opsional"
           echo "Jika ingin upload, sesuaikan metode: PyDrive, gdrive CLI, atau artifact GitHub"
-          # Contoh placeholder:
           # gdrive upload --recursive MLProject/drive_upload
 
       # 10️⃣ Post set up Python / Conda
