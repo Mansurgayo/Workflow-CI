@@ -19,23 +19,25 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      # 3️⃣ Set up Python 3.12.7
-      - name: Set up Python
-        uses: actions/setup-python@v4
+      # 3️⃣ Set up Conda environment (Python 3.12.7)
+      - name: Set up Conda
+        uses: conda-incubator/setup-miniconda@v3
         with:
-          python-version: 3.12.7
+          auto-update-conda: true
+          python-version: 3.12
+          environment-file: conda.yaml
+          activate-environment: mlflow-env  # ganti sesuai nama env di conda.yaml
+          auto-activate-base: false
 
       # 4️⃣ Check Environment
-      - name: Check Python and pip versions
+      - name: Check Python and Conda packages
         run: |
           python --version
-          pip --version
+          conda list
 
-      # 5️⃣ Install dependencies
-      - name: Install Python dependencies
-        run: |
-          pip install --upgrade pip
-          pip install -r requirements.txt
+      # 5️⃣ Install additional dependencies (opsional)
+      - name: Install additional Python dependencies
+        run: echo "⚡ Optional step for extra packages"
 
       # 6️⃣ Set MLflow Tracking URI
       - name: Set MLflow Tracking URI
@@ -48,9 +50,9 @@ jobs:
         run: |
           python modelling.py
 
-      # 8️⃣ Install Python dependencies (opsional tambahan)
-      - name: Install additional Python dependencies
-        run: echo "⚡ Additional dependencies step (opsional)"
+      # 8️⃣ Additional dependency step (opsional)
+      - name: Install additional Python dependencies (optional)
+        run: echo "⚡ Optional additional dependencies"
 
       # 9️⃣ Upload to Google Drive (opsional)
       - name: Upload to Google Drive
@@ -60,9 +62,9 @@ jobs:
           # Contoh placeholder:
           # gdrive upload --recursive MLProject/drive_upload
 
-      # 10️⃣ Post set up Python 3.12.7
-      - name: Post Python setup
-        run: echo "✅ Post Python setup completed"
+      # 10️⃣ Post set up Python / Conda
+      - name: Post Python/Conda setup
+        run: echo "✅ Post Python/Conda setup completed"
 
       # 11️⃣ Post Run actions/checkout@v3
       - name: Post checkout
