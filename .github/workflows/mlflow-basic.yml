@@ -38,14 +38,10 @@ jobs:
         python -m pip install --upgrade pip
         pip install mlflow scikit-learn pandas matplotlib seaborn gdown
 
-    # 6. Set MLflow Tracking URI (perbaikan: pakai Python)
+    # 6. Set MLflow Tracking URI (perbaikan)
     - name: Set MLflow Tracking URI
       run: |
-        python -c "
-import mlflow
-mlflow.set_tracking_uri('./MLProject/mlruns')
-print('✅ MLflow Tracking URI set to ./MLProject/mlruns')
-        "
+        python -c "import mlflow; mlflow.set_tracking_uri('./MLProject/mlruns'); print('✅ MLflow Tracking URI set to ./MLProject/mlruns')"
 
     # 7. Run MLflow project
     - name: Run MLflow project
