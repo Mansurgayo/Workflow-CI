@@ -25,13 +25,15 @@ jobs:
         with:
           python-version: 3.12.7
 
-      # 4️⃣ Check Environment
-      - name: Check Env
+      # 4️⃣ Check Env
+      - name: Check Environment
         run: python --version && pip --version
 
       # 5️⃣ Install dependencies
       - name: Install dependencies
-        run: pip install --upgrade pip && pip install mlflow scikit-learn pandas numpy
+        run: |
+          pip install --upgrade pip
+          pip install mlflow scikit-learn pandas numpy
 
       # 6️⃣ Run MLflow project
       - name: Run MLflow project
@@ -39,8 +41,7 @@ jobs:
 
       # 7️⃣ Get latest MLflow run_id
       - name: Get latest MLflow run_id
-        shell: bash
         run: |
           cd MLProject
-          latest_run_id=$(mlflow runs list | head -n 2 | tail -n 1 | awk '{print $1}')
+          latest_run_id=$(mlflow runs list | awk 'NR==2{print $1}')
           echo "✅ Latest MLflow run_id: $latest_run_id"
