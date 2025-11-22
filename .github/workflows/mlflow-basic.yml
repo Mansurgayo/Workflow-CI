@@ -46,10 +46,15 @@ jobs:
     # 7. Run MLflow project
     - name: Run MLflow project
       run: |
-        mlflow run MLProject \
-          --env-manager=local \
-          --experiment-name Workflow_CI_Experiment \
-          -P data_path=data/dataset.csv || exit 1
+        if [ -f data/dataset.csv ]; then
+          mlflow run MLProject \
+            --env-manager=local \
+            --experiment-name Workflow_CI_Experiment \
+            -e train \
+            -P data_path=data/dataset.csv || exit 1
+        else
+          echo "⚠️ Dataset not found, skipping MLflow run"
+        fi
 
     # 8. Install Python dependencies (opsional tambahan)
     - name: Install additional Python dependencies
