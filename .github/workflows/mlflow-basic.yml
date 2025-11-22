@@ -38,44 +38,47 @@ jobs:
         python -m pip install --upgrade pip
         pip install mlflow scikit-learn pandas matplotlib seaborn gdown
 
-    # 6. Set MLflow Tracking URI (perbaikan)
+    # 6. Set MLflow Tracking URI
     - name: Set MLflow Tracking URI
       run: |
         python -c "import mlflow; mlflow.set_tracking_uri('./MLProject/mlruns'); print('✅ MLflow Tracking URI set to ./MLProject/mlruns')"
 
-    # 7. Run MLflow project
+    # 7. Prepare dataset
+    - name: Prepare dataset
+      run: |
+        mkdir -p data
+        cp MLProject/dataset/cleaned_dataset.csv data/dataset.csv
+        echo "✅ Dataset prepared at data/dataset.csv"
+
+    # 8. Run MLflow project
     - name: Run MLflow project
       run: |
-        if [ -f data/dataset.csv ]; then
-          mlflow run MLProject \
-            --env-manager=local \
-            --experiment-name Workflow_CI_Experiment \
-            -e train \
-            -P data_path=data/dataset.csv || exit 1
-        else
-          echo "⚠️ Dataset not found, skipping MLflow run"
-        fi
+        mlflow run MLProject \
+          --env-manager=local \
+          --experiment-name Workflow_CI_Experiment \
+          -e train \
+          -P data_path=data/dataset.csv || exit 1
 
-    # 8. Install Python dependencies (opsional tambahan)
+    # 9. Install additional Python dependencies
     - name: Install additional Python dependencies
       run: |
         pip install requests numpy
 
-    # 9. Upload to Google Drive
+    # 10. Upload to Google Drive
     - name: Upload MLflow artifacts to Google Drive
       run: |
         mkdir -p drive_upload
         cp -r MLProject/mlruns drive_upload/
         # Gunakan gdown/rclone untuk upload ke Drive
 
-    # 10. Post Set up Python 3.12.7
+    # 11. Post Set up Python 3.12.7
     - name: Post Python 3.12.7 setup
       run: echo "✅ Post Python setup completed"
 
-    # 11. Post Run actions/checkout@v3
+    # 12. Post Run actions/checkout@v3
     - name: Post Checkout cleanup
       run: echo "✅ Post checkout completed"
 
-    # 12. Complete job
+    # 13. Complete job
     - name: Complete job
       run: echo "🎯 MLflow Skilled CI Job completed"
