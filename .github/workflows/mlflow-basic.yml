@@ -1,4 +1,4 @@
-name: MLflow Skilled CI
+name: MLflow Basic CI
 
 on:
   push:
@@ -19,55 +19,30 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      # 3️⃣ Set up Conda environment (Python 3.12.7)
-      - name: Set up Conda
-        uses: conda-incubator/setup-miniconda@v3
+      # 3️⃣ Set up Python 3.12.7
+      - name: Set up Python
+        uses: actions/setup-python@v4
         with:
-          auto-update-conda: true
-          python-version: 3.12
-          environment-file: MLProject/conda.yaml  # path benar
-          activate-environment: mlflow-env       # nama environment di conda.yaml
-          auto-activate-base: false
+          python-version: 3.12.7
 
       # 4️⃣ Check Environment
-      - name: Check Python and Conda packages
+      - name: Check Python and pip
         run: |
           python --version
-          conda list
+          pip --version
 
-      # 5️⃣ Install additional dependencies (opsional)
-      - name: Install additional Python dependencies
-        run: echo "⚡ Optional step for extra packages"
-
-      # 6️⃣ Set MLflow Tracking URI
-      - name: Set MLflow Tracking URI
+      # 5️⃣ Install dependencies
+      - name: Install dependencies
         run: |
-          export MLFLOW_TRACKING_URI=file://$(pwd)/mlruns
-          echo "MLFLOW_TRACKING_URI set to $MLFLOW_TRACKING_URI"
+          pip install --upgrade pip
+          pip install mlflow scikit-learn pandas numpy
 
-      # 7️⃣ Run MLflow project
-      - name: Run MLflow Project
+      # 6️⃣ Run MLflow project
+      - name: Run MLflow project
         run: python modelling.py
 
-      # 8️⃣ Additional dependency step (opsional)
-      - name: Install additional Python dependencies (optional)
-        run: echo "⚡ Optional additional dependencies"
-
-      # 9️⃣ Upload to Google Drive (opsional)
-      - name: Upload to Google Drive
+      # 7️⃣ Get latest MLflow run_id
+      - name: Get latest MLflow run_id
         run: |
-          echo "⚠️ Tahapan ini opsional"
-          echo "Jika ingin upload, sesuaikan metode: PyDrive, gdrive CLI, atau artifact GitHub"
-          # gdrive upload --recursive MLProject/drive_upload
-
-      # 10️⃣ Post set up Python / Conda
-      - name: Post Python/Conda setup
-        run: echo "✅ Post Python/Conda setup completed"
-
-      # 11️⃣ Post Run actions/checkout@v3
-      - name: Post checkout
-        run: echo "✅ Post checkout completed"
-
-      # 12️⃣ Complete job
-      - name: Complete job
-        run: echo "🎯 MLflow Skilled CI Job completed"
+          latest_run_id=$(mlflow runs list | head -n 2 | tail -n 1 | awk '{print $1}')
+          echo "✅ Latest MLflow run_id: $latest_run_id"
