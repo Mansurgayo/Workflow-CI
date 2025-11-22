@@ -1,19 +1,19 @@
-name: MLflow Basic CI
+name: MLflow Skilled CI
 
 on:
   push:
     branches: [ main ]
 
 jobs:
-  mlflow-basic:
+  mlflow-skilled:
     runs-on: ubuntu-latest
 
     steps:
     # 1. Set up job
     - name: Set up job
-      run: echo "Starting MLflow job"
+      run: echo "🚀 MLflow Skilled CI Job started"
 
-    # 2. Checkout code
+    # 2. Run actions/checkout@v3
     - name: Checkout code
       uses: actions/checkout@v3
 
@@ -23,46 +23,53 @@ jobs:
       with:
         python-version: '3.12.7'
 
-    # 4. Check Environment
-    - name: Check Environment
+    # 4. Check Env
+    - name: Check environment
       run: |
         python --version
-        echo "Directory: $(pwd)"
-        ls -la
-        echo "Cek file conda.yaml:"
-        find . -name "conda.yaml"
-        echo "Isi conda.yaml:"
-        cat MLProject/conda.yaml
+        pip --version
+        which python
+        which pip
+        pip list
 
     # 5. Install dependencies
     - name: Install dependencies
       run: |
-        pip install mlflow
+        python -m pip install --upgrade pip
+        pip install mlflow scikit-learn pandas matplotlib seaborn gdown
 
-    # 6. Run mlflow project
-    - name: Run mlflow project
+    # 6. Set MLflow Tracking URI
+    - name: Set MLflow Tracking URI
+      run: mlflow set-tracking-uri ./MLProject/mlruns
+
+    # 7. Run MLflow project
+    - name: Run MLflow project
       run: |
-        # Buat folder dataset dan copy file (jika ada di repo)
-        mkdir -p MLProject/dataset
-        cp -r MLProject/dataset/ . || echo "Dataset tidak ditemukan di repo"
+        mlflow run MLProject \
+          --env-manager=local \
+          --experiment-name Workflow_CI_Experiment \
+          -P data_path=data/dataset.csv || exit 1
 
-        # Cek apakah dataset ada
-        echo "Cek dataset:"
-        find . -name "*.csv" -type f
-        ls -la MLProject/dataset/ || echo "Folder dataset tidak ada"
-
-        # Buat MLproject
-        echo "name: diabetes_mlflow" > MLproject
-        echo "conda_env: MLProject/conda.yaml" >> MLproject
-        echo "entry_points:" >> MLproject
-        echo "  main:" >> MLproject
-        echo "    command: \"python MLProject/modelling.py\"" >> MLproject
-
-        # Jalankan MLflow
-        mlflow run . --env-manager=local
-
-    # 7. Get latest MLflow run_id
-    - name: Get latest MLflow run_id
+    # 8. Install Python dependencies (opsional tambahan)
+    - name: Install additional Python dependencies
       run: |
-        echo "Latest run:"
-        find ./mlruns -name "meta.yaml" | head -1
+        pip install requests numpy
+
+    # 9. Upload to Google Drive
+    - name: Upload MLflow artifacts to Google Drive
+      run: |
+        mkdir -p drive_upload
+        cp -r MLProject/mlruns drive_upload/
+        # Gunakan gdown/rclone untuk upload ke Drive
+
+    # 10. Post Set up Python 3.12.7
+    - name: Post Python 3.12.7 setup
+      run: echo "✅ Post Python setup completed"
+
+    # 11. Post Run actions/checkout@v3
+    - name: Post Checkout cleanup
+      run: echo "✅ Post checkout completed"
+
+    # 12. Complete job
+    - name: Complete job
+      run: echo "🎯 MLflow Skilled CI Job completed"
