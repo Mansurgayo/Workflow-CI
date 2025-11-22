@@ -1,13 +1,15 @@
+import os
+import sys
 import pandas as pd
 import mlflow
 import mlflow.sklearn
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score
-import sys
 
 # ⚡ LOAD DATASET ASLI ⚡
-DATA_PATH = "./MLProject/dataset/cleaned_dataset.csv"
+# Path relatif dari lokasi script
+DATA_PATH = os.path.join(os.path.dirname(__file__), "dataset", "cleaned_dataset.csv")
 
 try:
     df = pd.read_csv(DATA_PATH)
