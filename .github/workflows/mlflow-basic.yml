@@ -7,23 +7,23 @@ on:
 jobs:
   mlflow-basic:
     runs-on: ubuntu-latest
-    
+
     steps:
     # 1. Set up job
     - name: Set up job
       run: echo "Starting MLflow job"
-    
-    # 2. Run actions/checkout@v3
+
+    # 2. Checkout code
     - name: Checkout code
       uses: actions/checkout@v3
-    
+
     # 3. Set up Python 3.12.7
     - name: Set up Python 3.12.7
       uses: actions/setup-python@v4
       with:
         python-version: '3.12.7'
-    
-    # 4. Check Env
+
+    # 4. Check Environment
     - name: Check Environment
       run: |
         python --version
@@ -33,33 +33,34 @@ jobs:
         find . -name "conda.yaml"
         echo "Isi conda.yaml:"
         cat MLProject/conda.yaml
-    
+
     # 5. Install dependencies
     - name: Install dependencies
       run: |
         pip install mlflow
-    
-        # 6. Run mlflow project
-         - name: Run mlflow project
-         run: |
+
+    # 6. Run mlflow project
+    - name: Run mlflow project
+      run: |
         # Buat folder dataset dan copy file (jika ada di repo)
         mkdir -p MLProject/dataset
-        # Jika dataset sudah di repo, copy ke lokasi yang benar
         cp -r MLProject/dataset/ . || echo "Dataset tidak ditemukan di repo"
-        
+
         # Cek apakah dataset ada
         echo "Cek dataset:"
         find . -name "*.csv" -type f
         ls -la MLProject/dataset/ || echo "Folder dataset tidak ada"
-        
+
         # Buat MLproject
         echo "name: diabetes_mlflow" > MLproject
         echo "conda_env: MLProject/conda.yaml" >> MLproject
         echo "entry_points:" >> MLproject
         echo "  main:" >> MLproject
         echo "    command: \"python MLProject/modelling.py\"" >> MLproject
-         mlflow run . --env-manager=local
-    
+
+        # Jalankan MLflow
+        mlflow run . --env-manager=local
+
     # 7. Get latest MLflow run_id
     - name: Get latest MLflow run_id
       run: |
