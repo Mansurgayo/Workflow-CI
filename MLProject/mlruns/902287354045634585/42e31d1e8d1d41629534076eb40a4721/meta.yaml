@@ -1,0 +1,14 @@
+artifact_uri: file:E:/Workflow-CI/MLProject/mlruns/902287354045634585/42e31d1e8d1d41629534076eb40a4721/artifacts
+end_time: 1763904984196
+entry_point_name: ''
+experiment_id: '902287354045634585'
+lifecycle_stage: active
+run_id: 42e31d1e8d1d41629534076eb40a4721
+run_name: RandomForestExperiment
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1763904973949
+status: 3
+tags: []
+user_id: Mansurgayo

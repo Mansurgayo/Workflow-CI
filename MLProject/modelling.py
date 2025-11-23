@@ -1,11 +1,13 @@
 import os
 import sys
+import shutil
 import pandas as pd
 import mlflow
 import mlflow.sklearn
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score
+from datetime import datetime
 
 # ============================
 # 📌 Path Setup
@@ -23,7 +25,6 @@ if not os.path.exists(DATA_PATH):
 df = pd.read_csv(DATA_PATH)
 print(f"✅ Dataset loaded successfully!")
 
-
 # ============================
 # 📌 Dataset Processing
 # ============================
@@ -33,17 +34,15 @@ y = df["Outcome"]
 
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
-
 # ============================
 # 🚀 MLflow Setup
 # ============================
 
-mlflow.set_tracking_uri("file:./mlruns")  
+mlflow.set_tracking_uri("file:./mlruns")
 mlflow.set_experiment("Workflow_CI_Experiment")
 
 ARTIFACT_DIR = os.path.join(BASE_DIR, "drive_upload")
 os.makedirs(ARTIFACT_DIR, exist_ok=True)
-
 
 # ============================
 # 🤖 Train & Log Model
@@ -57,9 +56,12 @@ with mlflow.start_run(run_name="RandomForestExperiment"):
     acc = accuracy_score(y_test, y_pred)
     mlflow.log_metric("accuracy", acc)
 
-    model_path = os.path.join(ARTIFACT_DIR, "random_forest_model")
-    mlflow.sklearn.save_model(model, model_path)
+    # 🔹 Buat folder model unik per run
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    model_path = os.path.join(ARTIFACT_DIR, f"random_forest_model_{timestamp}")
 
+    # 🔹 Simpan model
+    mlflow.sklearn.save_model(model, model_path)
     mlflow.sklearn.log_model(model, artifact_path="model")
 
     print(f"🎯 Training Done. Accuracy: {acc}")
